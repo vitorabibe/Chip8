@@ -1,18 +1,12 @@
 from cmu_graphics import *
 import random
-import copy
 import os
 
 def onAppStart(app):
     app.background='black'
-    app.f = open('3-corax+.ch8', 'rb')
     app.v = [0 for i in range(16)]
     app.I = 0
     app.i = 0
-    app.a = list((app.f.read()))
-    program = copy.copy(app.a)
-    app.memory = [0 for i in range(4096)]
-    app.memory[512:512 + len(program)] = program
     app.opcode = []
     app.rx = 0
     app.ry = 0
@@ -36,12 +30,13 @@ def onAppStart(app):
     app.cpuColor = 'black'
     app.gameTextColor = 'white'
     app.cpuTextColor = 'white'
-    app.fileColor = 'black'
+    app.selectFileColor = 'black'
     app.fileTextColor = 'white'
     app.cx = app.width // 2 + app.width // 4
     app.cy = app.height // 2
     app.mouseHasMoved = False
-    app.files = findCh8Files('.ch8', findPaths('Chip 8'))
+    app.files = findCh8Files('.ch8', findPaths('Chip8'))
+    app.filesColor = ['white' for _ in range(len(app.files))]
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -51,7 +46,7 @@ def drawModes(app):
     drawLabel('CPU simulator', app.width // 4 + app.width // 8, app.height // 3 + app.height // 8, fill=app.cpuTextColor)
 
 def drawSelectFile(app):
-    drawRect(app.width // 2 + app.width // 12, app.height // 5, app.width // 3, app.height // 10, fill=app.fileColor, border='white')
+    drawRect(app.width // 2 + app.width // 12, app.height // 5, app.width // 3, app.height // 10, fill=app.selectFileColor, border='white')
     drawLabel('Select File', 3 * app.width // 4, app.height // 4, size=app.width//15, fill=app.fileTextColor)
 
 def findCh8Files(fileType, paths):
@@ -86,14 +81,55 @@ def findPaths(folder):
         result.append(file)
     return result
 
-# def drawFiles(app):
-#     numOfFiles = len(app.files)
-#     for i in range(numOfFiles):
-#         for j in range
-#         rLeft = i * (app.width // numOfFiles)
-#         rTop = i * (app.height // numOfFiles)
-#         drawRect(rLeft, rTop, rLeft + app.width // numOfFiles, rTop + app.height // numOfFiles, fill = 'white')
-#         drawLabel
+def drawFiles(app):
+    numOfFiles = len(app.files)
+    cols = 8
+    rows = (numOfFiles + cols - 1) // cols
+    cellWidth = app.width // cols
+    cellHeight = app.height // rows
+    for row in range(rows):
+        for col in range(cols):
+            fileIndex = row * cols + col
+            if fileIndex < numOfFiles:
+                rLeft = col * cellWidth
+                rTop = row * cellHeight
+                drawRect(rLeft, rTop, cellWidth, cellHeight, fill=app.filesColor[fileIndex], border='black', borderWidth=1)
+                drawLabel(app.files[fileIndex][:-4], (rLeft + cellWidth // 2), (rTop + cellHeight // 2), fill='red', size=app.width//60)
+
+def drawFileHoverOverColor(app, mouseX, mouseY):
+    numOfFiles = len(app.files)
+    cols = 8
+    rows = (numOfFiles + cols - 1) // cols
+    cellWidth = app.width / cols
+    cellHeight = app.height / rows
+    for row in range(rows):
+        for col in range(cols):
+            fileIndex = row * cols + col
+            if fileIndex < numOfFiles:
+                rLeft = col * cellWidth
+                rTop = row * cellHeight
+                if (rLeft <= mouseX <= rLeft + cellWidth) and (rTop <= mouseY <= rTop + cellHeight):
+                    app.filesColor[fileIndex] = 'black'
+                else:
+                    app.filesColor[fileIndex] = 'white'
+
+def fileSelected(app, mouseX, mouseY):
+    numOfFiles = len(app.files)
+    cols = 8
+    rows = (numOfFiles + cols - 1) // cols
+    cellWidth = app.width / cols
+    cellHeight = app.height / rows
+    for row in range(rows):
+        for col in range(cols):
+            fileIndex = row * cols + col
+            if fileIndex < numOfFiles:
+                rLeft = col * cellWidth
+                rTop = row * cellHeight
+                if (rLeft <= mouseX <= rLeft + cellWidth) and (rTop <= mouseY <= rTop + cellHeight):
+                    path = findPaths(app.files[fileIndex])
+                    print(path)
+                    return path
+    return None
 
 def drawStepsPerSecond(app):
     r = app.width // 60
@@ -199,8 +235,7 @@ def redrawAll(app):
     if app.initMode and not app.showFiles:
         drawInitScreen(app)
     elif app.showFiles:
-        # drawFiles(app)
-        pass
+        drawFiles(app)
     else:
         if app.mode == 'CPU':
             drawCPU(app)
@@ -236,9 +271,19 @@ def clickOnSelectFile(app, mouseX, mouseY):
 def onMousePress(app, mouseX, mouseY):
     if app.initScreen:
         clickOnMode(app, mouseX, mouseY)
-        if clickOnSelectFile(app, mouseX, mouseY):
-            print('aaa')
+        if clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
             app.showFiles = True
+        if not clickOnSelectFile(app, mouseX, mouseY) and app.showFiles:
+            selectedFile = fileSelected(app, mouseX, mouseY)
+            print(selectedFile)
+            if selectedFile != None:
+                app.fileSelected = True
+                app.f = open(selectedFile[0], 'rb')
+                program = list((app.f.read()))
+                app.memory = [0 for i in range(4096)]
+                app.memory[512:512 + len(program)] = program
+                print(app.program)
+                app.showFiles = False
         if app.modeSelected and app.fileSelected:
             app.initMode, app.showFiles = False
 
@@ -269,11 +314,13 @@ def onMouseMove(app, mouseX, mouseY):
                 app.cpuTextColor = 'white'
         if not app.fileSelected:
             if app.width // 2 + app.width // 12 < mouseX <  app.width // 2 + app.width // 12 + app.width // 3 and app.height // 5 < mouseY < app.height // 5 + app.height // 10:
-                app.fileColor = 'white'
+                app.selectFileColor = 'white'
                 app.fileTextColor = 'black'
             else:
-                app.fileColor = 'black'
+                app.selectFileColor = 'black'
                 app.fileTextColor = 'white'
+        if app.showFiles:
+            drawFileHoverOverColor(app, mouseX, mouseY)
 
 def onMouseDrag(app, mouseX, mouseY):
     if app.width // 2 + app.width // 20 <= mouseX <= app.width - app.width // 20 and app.cy - 20 <= mouseY <= app.cy + 20:
