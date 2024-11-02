@@ -1,6 +1,7 @@
 from cmu_graphics import *
 import random
 import copy
+import os
 
 def onAppStart(app):
     app.background='black'
@@ -26,6 +27,7 @@ def onAppStart(app):
     app.instruction = 0
     app.command = ''
     app.initMode = True
+    app.showFiles = False
     app.showCPU = False
     app.initScreen = True
     app.fileSelected = False
@@ -39,6 +41,7 @@ def onAppStart(app):
     app.cx = app.width // 2 + app.width // 4
     app.cy = app.height // 2
     app.mouseHasMoved = False
+    app.files = findCh8Files('.ch8', findPaths('Chip 8'))
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -50,6 +53,47 @@ def drawModes(app):
 def drawSelectFile(app):
     drawRect(app.width // 2 + app.width // 12, app.height // 5, app.width // 3, app.height // 10, fill=app.fileColor, border='white')
     drawLabel('Select File', 3 * app.width // 4, app.height // 4, size=app.width//15, fill=app.fileTextColor)
+
+def findCh8Files(fileType, paths):
+    if len(paths) == 0:
+        return []
+    _, extension = os.path.splitext(paths[0])
+    nextPaths = findCh8Files(fileType, paths[1:])
+    if fileType == extension:
+        return [paths[0]] + nextPaths
+    else:
+        return nextPaths
+
+def findFolderDir(folder, path):
+    if folder in path:
+        return path
+    else:
+        try:
+            for directory in os.listdir(path):
+                newPath = os.path.join(path, directory)
+                if os.path.isdir(newPath):
+                    nextPath = findFolderDir(folder, newPath)
+                    if nextPath != None:
+                        return nextPath
+        except PermissionError:
+            pass
+        return None
+
+def findPaths(folder):
+    result = []
+    folderDir = findFolderDir(folder, '/Users')
+    for file in os.listdir(folderDir):
+        result.append(file)
+    return result
+
+# def drawFiles(app):
+#     numOfFiles = len(app.files)
+#     for i in range(numOfFiles):
+#         for j in range
+#         rLeft = i * (app.width // numOfFiles)
+#         rTop = i * (app.height // numOfFiles)
+#         drawRect(rLeft, rTop, rLeft + app.width // numOfFiles, rTop + app.height // numOfFiles, fill = 'white')
+#         drawLabel
 
 def drawStepsPerSecond(app):
     r = app.width // 60
@@ -152,8 +196,11 @@ def drawCPU(app):
     drawRegisters(app)
 
 def redrawAll(app):
-    if app.initMode:
+    if app.initMode and not app.showFiles:
         drawInitScreen(app)
+    elif app.showFiles:
+        # drawFiles(app)
+        pass
     else:
         if app.mode == 'CPU':
             drawCPU(app)
@@ -190,11 +237,10 @@ def onMousePress(app, mouseX, mouseY):
     if app.initScreen:
         clickOnMode(app, mouseX, mouseY)
         if clickOnSelectFile(app, mouseX, mouseY):
-            #open File picker
-            #app.file = file opened
-            app.fileSelected = True
+            print('aaa')
+            app.showFiles = True
         if app.modeSelected and app.fileSelected:
-            app.initMode = False
+            app.initMode, app.showFiles = False
 
 def onMouseMove(app, mouseX, mouseY):
     if app.initScreen:
