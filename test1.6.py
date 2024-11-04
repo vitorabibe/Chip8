@@ -35,6 +35,9 @@ def onAppStart(app):
     app.cx = app.width // 2 + app.width // 4
     app.cy = app.height // 2
     app.mouseHasMoved = False
+    app.memory = [0 for _ in range(4096)]
+    app.dt = 0
+    app.st = 0
     app.files = findCh8Files('.ch8', findPaths('Chip8'))
     app.filesColor = ['white' for _ in range(len(app.files))]
 
@@ -126,9 +129,7 @@ def fileSelected(app, mouseX, mouseY):
                 rLeft = col * cellWidth
                 rTop = row * cellHeight
                 if (rLeft <= mouseX <= rLeft + cellWidth) and (rTop <= mouseY <= rTop + cellHeight):
-                    path = findPaths(app.files[fileIndex])
-                    print(path)
-                    return path
+                    return app.files[fileIndex]
     return None
 
 def drawStepsPerSecond(app):
@@ -277,15 +278,14 @@ def onMousePress(app, mouseX, mouseY):
             selectedFile = fileSelected(app, mouseX, mouseY)
             print(selectedFile)
             if selectedFile != None:
-                app.fileSelected = True
-                app.f = open(selectedFile[0], 'rb')
-                program = list((app.f.read()))
-                app.memory = [0 for i in range(4096)]
+                filePath = os.path.join(findFolderDir('Chip8', '/Users'), selectedFile)
+                f = open(filePath, 'rb')
+                program = list(f.read())
                 app.memory[512:512 + len(program)] = program
-                print(app.program)
-                app.showFiles = False
-        if app.modeSelected and app.fileSelected:
-            app.initMode, app.showFiles = False
+                app.fileSelected = True
+            app.initMode = False
+            app.showFiles = False
+
 
 def onMouseMove(app, mouseX, mouseY):
     if app.initScreen:
@@ -402,49 +402,41 @@ def readCode(app, opcode):
                 case 2:
                     app.instruction = 8.2
                     app.command = f'v[{x}] is ANDed by v[{y}]'
-                    app.v[x] &= app.v[y]
+                    app.v[x] &= app.v[y]     
                 case 3:
                     app.instruction = 8.3
                     app.command = f'v[{x}] is XORed by v[{y}]'
-                    app.v[x] ^= app.v[y]
+                    app.v[x] ^= app.v[y]   
                 case 4:
                     app.instruction = 8.4
                     app.command = f'v[{x}] += v[{y}]; Flag = carry'
-                    set = app.v[x] + app.v[y]
-                    if set > 255:
-                        app.v[15] = 1
-                    else:
-                        app.v[15] = 0
-                    app.v[x] = set & 255
+                    result = app.v[x] + app.v[y]
+                    app.v[x] = result & 255
+                    app.v[15] = 1 if result > 255 else 0    
                 case 5:
                     app.instruction = 8.5
-                    app.command = f'v[{x}] -= v[{y}]; Flag = NOT sign bit'
-                    set = app.v[x] - app.v[y]
-                    if app.v[x] >= app.v[y]:
-                        app.v[15] = 1
-                    else:
-                        app.v[15] = 0
-                    app.v[x] = set & 255
+                    app.command = f'v[{x}] -= v[{y}]; Flag = NOT borrow'
+                    oldX = app.v[x]
+                    app.v[x] = (app.v[x] - app.v[y]) & 255
+                    app.v[15] = 1 if oldX >= app.v[y] else 0
                 case 6:
                     app.instruction = 8.6
-                    app.command = f'Flag = v[{x}] LSB; v[{x}] is shifted right by 1'
-                    app.v[15] = app.v[x] & 1
-                    app.v[x] //= 2
+                    app.command = f'VY shifted right, stored in VX, VF = LSB'
+                    tempY = app.v[y]
+                    app.v[15] = tempY & 1
+                    app.v[x] = tempY >> 1
                 case 7:
                     app.instruction = 8.7
-                    app.command = f'v[{y}] -= v[{x}]; Flag = NOT sign bit'                    
-                    set = app.v[y] - app.v[x]
-                    if app.v[y] > app.v[x]:
-                        app.v[15] = 1
-                    else:
-                        app.v[15] = 0
-                    app.v[x] = set & 255
+                    app.command = f'v[{x}] = v[{y}] - v[{x}]; Flag = NOT borrow'
+                    oldX = app.v[x]
+                    app.v[x] = (app.v[y] - app.v[x]) & 255
+                    app.v[15] = 1 if app.v[y] >= oldX else 0
                 case 14:
                     app.instruction = 8.14
-                    app.command = f'Flag = v[{x}] MSB; v[{x}] is shifted left by 1'
-                    app.v[15] = app.v[x] & 128
-                    app.v[x] = app.v[x] * 2
-                    app.v[x] %= 256
+                    app.command = f'VY shifted left, stored in VX, VF = MSB'
+                    tempY = app.v[y]
+                    app.v[15] = 1 if (tempY & 0x80) else 0
+                    app.v[x] = (tempY << 1) & 0xFF
             app.pc += 2
         case 9:
             app.instruction = 9
@@ -516,9 +508,13 @@ def readCode(app, opcode):
                 case 24:
                     app.st = app.v[x]
                 case 30:
-                    app.instruction = 15.10
+                    app.instruction = 15.30
                     app.command = f'I += v[{x}]'
-                    app.I += app.v[x]
+                    if app.I + app.v[x] > 0xFFF:
+                        app.v[15] = 1
+                    else:
+                        app.v[15] = 0
+                    app.I = (app.I + app.v[x]) & 0xFFF
                 case 51:
                     app.instruction = 15.51
                     app.command = f'I, I+1, I+2 = BCD of v{[x]}'
