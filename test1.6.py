@@ -1,6 +1,7 @@
 from cmu_graphics import *
 import random
 import os
+import time
 
 def onAppStart(app):
     app.background='black'
@@ -16,8 +17,9 @@ def onAppStart(app):
     app.CPU = 0
     app.stack = []
     app.sPointer = 0
-    app.keyboard = {'1': 1, '2': 2, '3': 3, '4': 12, 'q': 4, 'w': 5, 'e': 6, 'r': 13, 'a': 7, 's': 8, 'd': 9, 'f': 14, 'z': 10, 'x': 0, 'c': 11, 'v': 15}
-    app.keyValue = 0
+    app.keyValue = None
+    app.keyboard = {'1': 1, '2': 2, '3': 3, '4': 0xC,  'q': 4, 'w': 5, 'e': 6, 'r': 0xD,  'a': 7, 's': 8, 'd': 9, 'f': 0xE,  'z': 0xA, 'x': 0, 'c': 0xB, 'v': 0xF}
+    app.keyStates = [False] * 16
     app.instruction = 0
     app.command = ''
     app.initMode = True
@@ -36,10 +38,15 @@ def onAppStart(app):
     app.cy = app.height // 2
     app.mouseHasMoved = False
     app.memory = [0 for _ in range(4096)]
-    app.dt = 0
-    app.st = 0
     app.files = findCh8Files('.ch8', findPaths('Chip8'))
     app.filesColor = ['white' for _ in range(len(app.files))]
+    app.dt = 0
+    app.st = 0
+    app.lastTimerUpdate = time.time()
+    app.lastInstructionTime = time.time()
+    app.timerInterval = 1/60
+    app.instructionInterval = 1/500
+    app.stepsPerSecond = 500
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -159,8 +166,6 @@ def drawPixels(app):
         for pixel in range(len(app.screen[row])):
             if app.screen[row][pixel] == 1:
                 drawRect(xInit + (pixel * pixelX), yInit + row * pixelY, pixelX, pixelY, align='center', fill='white')
-            else:
-                drawRect(xInit + (pixel * pixelX), yInit + row * pixelY, pixelX, pixelY, align='center', fill='black')
 
 def drawPC(app):
     pcX = 0
@@ -243,16 +248,29 @@ def redrawAll(app):
         drawPixels(app)
 
 def onStep(app):
-    if app.initMode == False:
-        app.CPU = app.memory[app.pc] << 8 | app.memory[app.pc + 1]
-        print(app.pc)
-        readCode(app, app.CPU)
+    if not app.initMode:
+        currentTime = time.time()
+        if currentTime - app.lastTimerUpdate >= app.timerInterval:
+            if app.dt > 0:
+                app.dt -= 1
+            if app.st > 0:
+                app.st -= 1
+            app.lastTimerUpdate = currentTime
+        if currentTime - app.lastInstructionTime >= app.instructionInterval:
+            app.CPU = app.memory[app.pc] << 8 | app.memory[app.pc + 1]
+            readCode(app, app.CPU)
+            app.lastInstructionTime = currentTime
 
 def onKeyPress(app, key):
-    app.keyValue = app.keyboard[key]
+    if key in app.keyboard:
+        keyIndex = app.keyboard[key]
+        app.keyStates[keyIndex] = True
 
 def onKeyRelease(app, key):
-    app.keyValue = 0
+    if key in app.keyboard:
+        keyIndex = app.keyboard[key]
+        app.keyStates[keyIndex] = False
+
 
 def clickOnMode(app, mouseX, mouseY):
         if not app.modeSelected:
@@ -260,7 +278,6 @@ def clickOnMode(app, mouseX, mouseY):
                 if 0 < mouseX < app.width // 4:
                     app.mode = 'game'
                     app.modeSelected = True
-
                 elif app.width // 4 < mouseX < app.width // 2:
                     app.mode = 'CPU'
                     app.modeSelected = True
@@ -276,12 +293,12 @@ def onMousePress(app, mouseX, mouseY):
             app.showFiles = True
         if not clickOnSelectFile(app, mouseX, mouseY) and app.showFiles:
             selectedFile = fileSelected(app, mouseX, mouseY)
-            print(selectedFile)
             if selectedFile != None:
                 filePath = os.path.join(findFolderDir('Chip8', '/Users'), selectedFile)
                 f = open(filePath, 'rb')
                 program = list(f.read())
                 app.memory[512:512 + len(program)] = program
+                app.memory[0x1FF] = 1
                 app.fileSelected = True
             app.initMode = False
             app.showFiles = False
@@ -326,7 +343,7 @@ def onMouseDrag(app, mouseX, mouseY):
     if app.width // 2 + app.width // 20 <= mouseX <= app.width - app.width // 20 and app.cy - 20 <= mouseY <= app.cy + 20:
         app.cx = mouseX
         app.mouseHasMoved = True
-    app.stepsPerSecond = app.cx % (app.width // 2 + app.width // 20) if app.cx % (app.width // 2 + app.width // 20) != 0 else 1
+    # app.stepsPerSecond = app.cx % (app.width // 2 + app.width // 20) if app.cx % (app.width // 2 + app.width // 20) != 0 else 1
 
 def readCode(app, opcode):
     instruction = opcode >> 12
@@ -421,10 +438,10 @@ def readCode(app, opcode):
                     app.v[15] = 1 if oldX >= app.v[y] else 0
                 case 6:
                     app.instruction = 8.6
-                    app.command = f'VY shifted right, stored in VX, VF = LSB'
-                    tempY = app.v[y]
-                    app.v[15] = tempY & 1
-                    app.v[x] = tempY >> 1
+                    app.command = f'V[{x}] shifted right, Flag = LSB'
+                    oldX = app.v[x]
+                    app.v[x] //= 2
+                    app.v[15] = oldX & 1
                 case 7:
                     app.instruction = 8.7
                     app.command = f'v[{x}] = v[{y}] - v[{x}]; Flag = NOT borrow'
@@ -433,10 +450,11 @@ def readCode(app, opcode):
                     app.v[15] = 1 if app.v[y] >= oldX else 0
                 case 14:
                     app.instruction = 8.14
-                    app.command = f'VY shifted left, stored in VX, VF = MSB'
-                    tempY = app.v[y]
-                    app.v[15] = 1 if (tempY & 0x80) else 0
-                    app.v[x] = (tempY << 1) & 0xFF
+                    app.command = f'VY shifted left, stored in VX, Flag = MSB'
+                    oldX = app.v[x]
+                    app.v[x] *= 2
+                    app.v[x] &= 255
+                    app.v[15] = oldX >> 7
             app.pc += 2
         case 9:
             app.instruction = 9
@@ -455,9 +473,9 @@ def readCode(app, opcode):
             app.command = f'sets PC to {nnn} + v[0]({app.v[0]})'
             app.pc = nnn + app.v[0]
         case 12:
+            r = random.randint(0, 255)
             app.instruction = 12
             app.command = f'sets v[{x}] equal to {kk} & {r}'
-            r = random.randint(0, 255)
             app.v[x] = r & kk
             app.pc += 2
         case 13:
@@ -465,7 +483,6 @@ def readCode(app, opcode):
             app.command = f'Draws from memory location {app.I} at coordinate (v[{x}], v[{y}])'
             app.v[15] = 0
             for height in range(n):
-                print(app.I + height)
                 sprite = app.memory[app.I + height]
                 for bit in range(8):
                     screenX = (app.v[x] + bit) % 64
@@ -479,16 +496,16 @@ def readCode(app, opcode):
         case 14:
             match kk:
                 case 158:
-                    if app.keyValue == app.v[x]:
-                        app.instruction = 14.158
-                        app.command = f'skips next instruction if key pressed = {app.keyboard[app.keyValue]}'
+                    app.instruction = 14.158
+                    app.command = f'skips next instruction if key pressed = v[{x}] ({app.v[x]})'
+                    if app.keyStates[app.v[x]]:
                         app.pc += 4
                     else:
                         app.pc += 2
                 case 161:
                     app.instruction = 14.161
-                    app.command = f'skips next instruction if key pressed != {app.keyboard[app.keyValue]}'
-                    if app.keyValue != app.v[x]:
+                    app.command = f'skips next instruction if key not pressed = v[{x}] ({app.v[x]})'
+                    if not app.keyStates[app.v[x]]:
                         app.pc += 4
                     else:
                         app.pc += 2
@@ -496,25 +513,39 @@ def readCode(app, opcode):
             match kk:
                 case 10:
                     app.instruction = 15.10
-                    app.command = f'sets v[{x}] = {app.keyboard[app.keyValue]}'
-                    if app.keyValue == None:
-                        pass
+                    app.command = f'wait for key press and store in v[{x}]'
+                    pressedKeys = [i for i, pressed in enumerate(app.keyStates) if pressed]
+                    if not pressedKeys:
+                        return
                     else:
-                        app.v[x] = app.keyValue
+                        app.v[x] = pressedKeys[0]
+                        app.pc += 2
                 case 7:
+                    app.instruction = 15.7
+                    app.command = f'set v[{x}] = delay timer'
                     app.v[x] = app.dt
+                    app.pc += 2
+                case 15:
+                    app.instruction = 15.15
+                    app.command = f'set delay timer = v[{x}]'
+                    app.dt = app.v[x]
+                    app.pc += 2
+                case 18:
+                    app.instruction = 15.18
+                    app.command = f'set sound timer = v[{x}]'
+                    app.st = app.v[x]
+                    app.pc += 2
                 case 21:
                     app.dt = app.v[x]
+                    app.pc += 2
                 case 24:
                     app.st = app.v[x]
+                    app.pc += 2
                 case 30:
                     app.instruction = 15.30
                     app.command = f'I += v[{x}]'
-                    if app.I + app.v[x] > 0xFFF:
-                        app.v[15] = 1
-                    else:
-                        app.v[15] = 0
                     app.I = (app.I + app.v[x]) & 0xFFF
+                    app.pc += 2
                 case 51:
                     app.instruction = 15.51
                     app.command = f'I, I+1, I+2 = BCD of v{[x]}'
@@ -524,21 +555,24 @@ def readCode(app, opcode):
                     app.memory[app.I] = hundreds
                     app.memory[app.I + 1] = tens
                     app.memory[app.I + 2] = ones
+                    app.pc += 2
                 case 41:
                     app.instruction = 15.41
                     app.command = f'I = v{[x]} sprite location'
                     app.I = app.v[x] * 5
+                    app.pc += 2
                 case 85:
                     app.instruction = 15.85
                     app.command = f'writes v[0], v[{x}] in memory I, I + {x}'
                     for i in range(x + 1):
                         app.memory[app.I + i] = app.v[i] % 256
+                    app.pc += 2
                 case 101:
                     app.instruction = 15.85
                     app.command = f'reads memory I, I + {x} in v[0], v[{x}]'
                     for i in range(x + 1):
                         app.v[i] = app.memory[app.I + i]
                         app.v[i] = app.v[i] % 256
-            app.pc += 2
+                    app.pc += 2
 
 runApp()
