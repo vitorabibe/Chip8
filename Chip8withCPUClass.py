@@ -3,20 +3,260 @@ import random
 import os
 import time
 
+class Cpu:
+    def __init__(self):
+        self.v = [0 for i in range(16)]
+        self.I = 0
+        self.i = 0
+        self.opcode = []
+        self.pc = 512
+        self.stack = []
+        self.sPointer = 0
+        self.memory = [0 for _ in range(4096)]
+        self.dt = 0
+        self.st = 0
+        self.lastTimerUpdate = time.time()
+        self.lastInstructionTime = time.time()
+        self.timerInterval = 1/60
+        self.instructionInterval = 1/500
+        self.stepsPerSecond = 500
+    
+    def run(self, opcode):
+        instruction = opcode >> 12
+        x = (opcode >> 8) & 0x0F
+        y = (opcode >> 4) & 0x0F
+        n = opcode & 0x000F
+        kk = opcode & 0x00FF
+        nnn = opcode & 0x0FFF
+        match instruction:
+            case 0:
+                if opcode == 0x00E0:
+                    app.instruction = 0.0
+                    app.command = 'clears screen'
+                    self.screen = [[0 for _ in range(64)] for _ in range(32)]
+                    self.pc += 2
+                elif opcode == 0x00EE:
+                    app.instruction = 0.14
+                    app.command = 'returns from subroutine'
+                    self.pc = app.stack.pop()
+                else:
+                    self.pc += 2          
+            case 1:
+                app.instruction = 1
+                app.command = f'set PC to {nnn}'
+                self.pc = nnn
+            case 2:
+                app.instruction = 2
+                app.command = f'append PC to stack, set PC to {nnn}'
+                self.stack.append(app.pc + 2)
+                self.pc = nnn
+            case 3:
+                app.instruction = 3
+                app.command = f'skips next instruction if v[{x}] == {kk}'
+                if self.v[x] == kk:
+                    self.pc += 4
+                else:
+                    self.pc += 2
+            case 4:
+                app.instruction = 4
+                app.command = f'skips next instruction if v[{x}] != {kk}'
+                if self.v[x] != kk:
+                    self.pc += 4
+                else:
+                    self.pc += 2
+            case 5:
+                app.instruction = 5
+                app.command = f'skips next instruction if v[{x}] == v[{y}]'
+                if self.v[x] == self.v[y]:
+                    self.pc += 4
+                else:
+                    self.pc += 2
+            case 6:
+                app.instruction = 6
+                app.command = f'set v[{x}] = {kk}'
+                self.v[x] = kk
+                self.pc += 2
+            case 7:
+                app.instruction = 7
+                app.command = f'adds {kk} to v[{x}]'
+                self.v[x] += kk
+                self.v[x] = self.v[x] % 256
+                self.pc += 2
+            case 8:
+                match n:
+                    case 0:
+                        app.instruction = 8.0
+                        app.command = f'v[{x}] = v[{y}]'
+                        self.v[x] = self.v[y]
+                    case 1:
+                        app.instruction = 8.1
+                        app.command = f'v[{x}] is ORed by v[{y}]'
+                        self.v[x] |= self.v[y]
+                    case 2:
+                        app.instruction = 8.2
+                        app.command = f'v[{x}] is ANDed by v[{y}]'
+                        self.v[x] &= self.v[y]     
+                    case 3:
+                        app.instruction = 8.3
+                        app.command = f'v[{x}] is XORed by v[{y}]'
+                        self.v[x] ^= self.v[y]   
+                    case 4:
+                        app.instruction = 8.4
+                        app.command = f'v[{x}] += v[{y}]; Flag = carry'
+                        result = self.v[x] + self.v[y]
+                        self.v[x] = result & 255
+                        self.v[15] = 1 if result > 255 else 0    
+                    case 5:
+                        app.instruction = 8.5
+                        app.command = f'v[{x}] -= v[{y}]; Flag = NOT borrow'
+                        oldX = self.v[x]
+                        self.v[x] = (self.v[x] - self.v[y]) & 255
+                        self.v[15] = 1 if oldX >= self.v[y] else 0
+                    case 6:
+                        app.instruction = 8.6
+                        app.command = f'V[{x}] shifted right, Flag = LSB'
+                        oldX = self.v[x]
+                        self.v[x] //= 2
+                        self.v[15] = oldX & 1
+                    case 7:
+                        app.instruction = 8.7
+                        app.command = f'v[{x}] = v[{y}] - v[{x}]; Flag = NOT borrow'
+                        oldX = self.v[x]
+                        self.v[x] = (self.v[y] - self.v[x]) & 255
+                        self.v[15] = 1 if self.v[y] >= oldX else 0
+                    case 14:
+                        app.instruction = 8.14
+                        app.command = f'VY shifted left, stored in VX, Flag = MSB'
+                        oldX = self.v[x]
+                        self.v[x] *= 2
+                        self.v[x] &= 255
+                        self.v[15] = oldX >> 7
+                self.pc += 2
+            case 9:
+                app.instruction = 9
+                app.command = f'skips next instruction if v[{x}] != v[{y}]'
+                if self.v[x] != self.v[y]:
+                    self.pc += 4
+                else:
+                    self.pc += 2
+            case 10:
+                app.instruction = 10
+                app.command = f'sets I = {nnn}'
+                self.I = nnn
+                self.pc += 2
+            case 11:
+                app.instruction = 11
+                app.command = f'sets PC to {nnn} + v[0]({self.v[0]})'
+                self.pc = nnn + self.v[0]
+            case 12:
+                r = random.randint(0, 255)
+                app.instruction = 12
+                app.command = f'sets v[{x}] equal to {kk} & {r}'
+                self.v[x] = r & kk
+                self.pc += 2
+            case 13:
+                app.instruction = 13
+                app.command = f'Draws from memory location {self.I} at coordinate (v[{x}], v[{y}])'
+                self.v[15] = 0
+                for height in range(n):
+                    sprite = self.memory[self.I + height]
+                    for bit in range(8):
+                        screenX = (self.v[x] + bit) % 64
+                        screenY = (self.v[y] + height) % 32
+                        spritePixel = (sprite >> (7 - bit)) & 1
+                        was0 = self.screen[screenY][screenX] == 0
+                        self.screen[screenY][screenX] ^= spritePixel
+                        if self.screen[screenY][screenX] == 0 and was0 == False:
+                            self.v[15] = 1
+                self.pc += 2
+            case 14:
+                match kk:
+                    case 158:
+                        app.instruction = 14.158
+                        app.command = f'skips next instruction if key pressed = v[{x}] ({self.v[x]})'
+                        if self.keyStates[app.v[x]]:
+                            self.pc += 4
+                        else:
+                            self.pc += 2
+                    case 161:
+                        app.instruction = 14.161
+                        app.command = f'skips next instruction if key not pressed = v[{x}] ({self.v[x]})'
+                        if not app.keyStates[self.v[x]]:
+                            self.pc += 4
+                        else:
+                            self.pc += 2
+            case 15:
+                match kk:
+                    case 10:
+                        app.instruction = 15.10
+                        app.command = f'wait for key press and store in v[{x}]'
+                        pressedKeys = [i for i, pressed in enumerate(app.keyStates) if pressed]
+                        if not pressedKeys:
+                            return
+                        else:
+                            self.v[x] = pressedKeys[0]
+                            self.pc += 2
+                    case 7:
+                        app.instruction = 15.7
+                        app.command = f'set v[{x}] = delay timer'
+                        self.v[x] = self.dt
+                        self.pc += 2
+                    case 15:
+                        app.instruction = 15.15
+                        app.command = f'set delay timer = v[{x}]'
+                        self.dt = self.v[x]
+                        self.pc += 2
+                    case 18:
+                        app.instruction = 15.18
+                        app.command = f'set sound timer = v[{x}]'
+                        self.st = self.v[x]
+                        self.pc += 2
+                    case 21:
+                        app.dt = app.v[x]
+                        self.pc += 2
+                    case 24:
+                        app.st = app.v[x]
+                        self.pc += 2
+                    case 30:
+                        app.instruction = 15.30
+                        app.command = f'I += v[{x}]'
+                        self.I = (self.I + self.v[x]) & 0xFFF
+                        self.pc += 2
+                    case 51:
+                        app.instruction = 15.51
+                        app.command = f'I, I+1, I+2 = BCD of v{[x]}'
+                        hundreds = app.v[x] // 100 % 10
+                        tens = app.v[x] // 10 % 10
+                        ones = app.v[x] % 10
+                        self.memory[self.I] = hundreds
+                        self.memory[self.I + 1] = tens
+                        self.memory[self.I + 2] = ones
+                        self.pc += 2
+                    case 41:
+                        app.instruction = 15.41
+                        app.command = f'I = v{[x]} sprite location'
+                        self.I = self.v[x] * 5
+                        self.pc += 2
+                    case 85:
+                        app.instruction = 15.85
+                        app.command = f'writes v[0], v[{x}] in memory I, I + {x}'
+                        for i in range(x + 1):
+                            self.memory[self.I + i] = self.v[i] % 256
+                        self.pc += 2
+                    case 101:
+                        app.instruction = 15.85
+                        app.command = f'reads memory I, I + {x} in v[0], v[{x}]'
+                        for i in range(x + 1):
+                            self.v[i] = self.memory[self.I + i]
+                            self.v[i] = self.v[i] % 256
+                        self.pc += 2
+
 def onAppStart(app):
     app.background='black'
-    app.v = [0 for i in range(16)]
-    app.I = 0
-    app.i = 0
-    app.opcode = []
     app.rx = 0
     app.ry = 0
-    app.pc = 512
     app.screen = [[0 for i in range(64)] for j in range(32)]
     app.setMaxShapeCount(10000)
-    app.CPU = 0
-    app.stack = []
-    app.sPointer = 0
     app.keyValue = None
     app.keyboard = {'1': 1, '2': 2, '3': 3, '4': 0xC,  'q': 4, 'w': 5, 'e': 6, 'r': 0xD,  'a': 7, 's': 8, 'd': 9, 'f': 0xE,  'z': 0xA, 'x': 0, 'c': 0xB, 'v': 0xF}
     app.keyStates = [False] * 16
@@ -37,16 +277,8 @@ def onAppStart(app):
     app.cx = app.width // 2 + app.width // 4
     app.cy = app.height // 2
     app.mouseHasMoved = False
-    app.memory = [0 for _ in range(4096)]
     app.files = findCh8Files('.ch8', findPaths('Chip8'))
     app.filesColor = ['white' for _ in range(len(app.files))]
-    app.dt = 0
-    app.st = 0
-    app.lastTimerUpdate = time.time()
-    app.lastInstructionTime = time.time()
-    app.timerInterval = 1/60
-    app.instructionInterval = 1/500
-    app.stepsPerSecond = 500
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -164,7 +396,7 @@ def drawPixels(app):
     pixelY = (height) // 32
     for row in range(len(app.screen)):
         for pixel in range(len(app.screen[row])):
-            if app.screen[row][pixel]:
+            if app.screen[row][pixel] == 1:
                 drawRect(xInit + (pixel * pixelX), yInit + row * pixelY, pixelX, pixelY, align='center', fill='white')
 
 def drawPC(app):
@@ -257,8 +489,8 @@ def onStep(app):
                 app.st -= 1
             app.lastTimerUpdate = currentTime
         if currentTime - app.lastInstructionTime >= app.instructionInterval:
-            app.CPU = app.memory[app.pc] << 8 | app.memory[app.pc + 1]
-            readCode(app, app.CPU)
+            opcode = Cpu.memory[app.pc] << 8 | app.memory[app.pc + 1]
+            Cpu.run(opcode)
             app.lastInstructionTime = currentTime
 
 def onKeyPress(app, key):
@@ -344,235 +576,5 @@ def onMouseDrag(app, mouseX, mouseY):
         app.cx = mouseX
         app.mouseHasMoved = True
     app.stepsPerSecond = (3.125 * (app.cx % (app.width // 2 + app.width // 20))) // 1 if app.cx % (app.width // 2 + app.width // 20) != 0 else 1
-
-def readCode(app, opcode):
-    instruction = opcode >> 12
-    x = (opcode >> 8) & 0x0F
-    y = (opcode >> 4) & 0x0F
-    n = opcode & 0x000F
-    kk = opcode & 0x00FF
-    nnn = opcode & 0x0FFF
-    match instruction:
-        case 0:
-            if opcode == 0x00E0:
-                app.instruction = 0.0
-                app.command = 'clears screen'
-                app.screen = [[0 for _ in range(64)] for _ in range(32)]
-                app.pc += 2
-            elif opcode == 0x00EE:
-                app.instruction = 0.14
-                app.command = 'returns from subroutine'
-                app.pc = app.stack.pop()
-            else:
-                app.pc += 2          
-        case 1:
-            app.instruction = 1
-            app.command = f'set PC to {nnn}'
-            app.pc = nnn
-        case 2:
-            app.instruction = 2
-            app.command = f'append PC to stack, set PC to {nnn}'
-            app.stack.append(app.pc + 2)
-            app.pc = nnn
-        case 3:
-            app.instruction = 3
-            app.command = f'skips next instruction if v[{x}] == {kk}'
-            if app.v[x] == kk:
-                app.pc += 4
-            else:
-                app.pc += 2
-        case 4:
-            app.instruction = 4
-            app.command = f'skips next instruction if v[{x}] != {kk}'
-            if app.v[x] != kk:
-                app.pc += 4
-            else:
-                app.pc += 2
-        case 5:
-            app.instruction = 5
-            app.command = f'skips next instruction if v[{x}] == v[{y}]'
-            if app.v[x] == app.v[y]:
-                app.pc += 4
-            else:
-                app.pc += 2
-        case 6:
-            app.instruction = 6
-            app.command = f'set v[{x}] = {kk}'
-            app.v[x] = kk
-            app.pc += 2
-        case 7:
-            app.instruction = 7
-            app.command = f'adds {kk} to v[{x}]'
-            app.v[x] += kk
-            app.v[x] = app.v[x] % 256
-            app.pc += 2
-        case 8:
-            match n:
-                case 0:
-                    app.instruction = 8.0
-                    app.command = f'v[{x}] = v[{y}]'
-                    app.v[x] = app.v[y]
-                case 1:
-                    app.instruction = 8.1
-                    app.command = f'v[{x}] is ORed by v[{y}]'
-                    app.v[x] |= app.v[y]
-                case 2:
-                    app.instruction = 8.2
-                    app.command = f'v[{x}] is ANDed by v[{y}]'
-                    app.v[x] &= app.v[y]     
-                case 3:
-                    app.instruction = 8.3
-                    app.command = f'v[{x}] is XORed by v[{y}]'
-                    app.v[x] ^= app.v[y]   
-                case 4:
-                    app.instruction = 8.4
-                    app.command = f'v[{x}] += v[{y}]; Flag = carry'
-                    result = app.v[x] + app.v[y]
-                    app.v[x] = result & 255
-                    app.v[15] = 1 if result > 255 else 0    
-                case 5:
-                    app.instruction = 8.5
-                    app.command = f'v[{x}] -= v[{y}]; Flag = NOT borrow'
-                    oldX = app.v[x]
-                    app.v[x] = (app.v[x] - app.v[y]) & 255
-                    app.v[15] = 1 if oldX >= app.v[y] else 0
-                case 6:
-                    app.instruction = 8.6
-                    app.command = f'V[{x}] shifted right, Flag = LSB'
-                    oldX = app.v[x]
-                    app.v[x] //= 2
-                    app.v[15] = oldX & 1
-                case 7:
-                    app.instruction = 8.7
-                    app.command = f'v[{x}] = v[{y}] - v[{x}]; Flag = NOT borrow'
-                    oldX = app.v[x]
-                    app.v[x] = (app.v[y] - app.v[x]) & 255
-                    app.v[15] = 1 if app.v[y] >= oldX else 0
-                case 14:
-                    app.instruction = 8.14
-                    app.command = f'VY shifted left, stored in VX, Flag = MSB'
-                    oldX = app.v[x]
-                    app.v[x] *= 2
-                    app.v[x] &= 255
-                    app.v[15] = oldX >> 7
-            app.pc += 2
-        case 9:
-            app.instruction = 9
-            app.command = f'skips next instruction if v[{x}] != v[{y}]'
-            if app.v[x] != app.v[y]:
-                app.pc += 4
-            else:
-                app.pc += 2
-        case 10:
-            app.instruction = 10
-            app.command = f'sets I = {nnn}'
-            app.I = nnn
-            app.pc += 2
-        case 11:
-            app.instruction = 11
-            app.command = f'sets PC to {nnn} + v[0]({app.v[0]})'
-            app.pc = nnn + app.v[0]
-        case 12:
-            r = random.randint(0, 255)
-            app.instruction = 12
-            app.command = f'sets v[{x}] equal to {kk} & {r}'
-            app.v[x] = r & kk
-            app.pc += 2
-        case 13:
-            app.instruction = 13
-            app.command = f'Draws from memory location {app.I} at coordinate (v[{x}], v[{y}])'
-            app.v[15] = 0
-            for height in range(n):
-                sprite = app.memory[app.I + height]
-                for bit in range(8):
-                    screenX = (app.v[x] + bit) % 64
-                    screenY = (app.v[y] + height) % 32
-                    spritePixel = (sprite >> (7 - bit)) & 1
-                    was0 = app.screen[screenY][screenX] == 0
-                    app.screen[screenY][screenX] ^= spritePixel
-                    if app.screen[screenY][screenX] == 0 and was0 == False:
-                        app.v[15] = 1
-            app.pc += 2
-        case 14:
-            match kk:
-                case 158:
-                    app.instruction = 14.158
-                    app.command = f'skips next instruction if key pressed = v[{x}] ({app.v[x]})'
-                    if app.keyStates[app.v[x]]:
-                        app.pc += 4
-                    else:
-                        app.pc += 2
-                case 161:
-                    app.instruction = 14.161
-                    app.command = f'skips next instruction if key not pressed = v[{x}] ({app.v[x]})'
-                    if not app.keyStates[app.v[x]]:
-                        app.pc += 4
-                    else:
-                        app.pc += 2
-        case 15:
-            match kk:
-                case 10:
-                    app.instruction = 15.10
-                    app.command = f'wait for key press and store in v[{x}]'
-                    pressedKeys = [i for i, pressed in enumerate(app.keyStates) if pressed]
-                    if not pressedKeys:
-                        return
-                    else:
-                        app.v[x] = pressedKeys[0]
-                        app.pc += 2
-                case 7:
-                    app.instruction = 15.7
-                    app.command = f'set v[{x}] = delay timer'
-                    app.v[x] = app.dt
-                    app.pc += 2
-                case 15:
-                    app.instruction = 15.15
-                    app.command = f'set delay timer = v[{x}]'
-                    app.dt = app.v[x]
-                    app.pc += 2
-                case 18:
-                    app.instruction = 15.18
-                    app.command = f'set sound timer = v[{x}]'
-                    app.st = app.v[x]
-                    app.pc += 2
-                case 21:
-                    app.dt = app.v[x]
-                    app.pc += 2
-                case 24:
-                    app.st = app.v[x]
-                    app.pc += 2
-                case 30:
-                    app.instruction = 15.30
-                    app.command = f'I += v[{x}]'
-                    app.I = (app.I + app.v[x]) & 0xFFF
-                    app.pc += 2
-                case 51:
-                    app.instruction = 15.51
-                    app.command = f'I, I+1, I+2 = BCD of v{[x]}'
-                    hundreds = app.v[x] // 100 % 10
-                    tens = app.v[x] // 10 % 10
-                    ones = app.v[x] % 10
-                    app.memory[app.I] = hundreds
-                    app.memory[app.I + 1] = tens
-                    app.memory[app.I + 2] = ones
-                    app.pc += 2
-                case 41:
-                    app.instruction = 15.41
-                    app.command = f'I = v{[x]} sprite location'
-                    app.I = app.v[x] * 5
-                    app.pc += 2
-                case 85:
-                    app.instruction = 15.85
-                    app.command = f'writes v[0], v[{x}] in memory I, I + {x}'
-                    for i in range(x + 1):
-                        app.memory[app.I + i] = app.v[i] % 256
-                    app.pc += 2
-                case 101:
-                    app.instruction = 15.85
-                    app.command = f'reads memory I, I + {x} in v[0], v[{x}]'
-                    for i in range(x + 1):
-                        app.v[i] = app.memory[app.I + i]
-                        app.v[i] = app.v[i] % 256
-                    app.pc += 2
 
 runApp()

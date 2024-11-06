@@ -2,6 +2,7 @@ from cmu_graphics import *
 import random
 import os
 import time
+import copy
 
 def onAppStart(app):
     app.background='black'
@@ -38,8 +39,10 @@ def onAppStart(app):
     app.cy = app.height // 2
     app.mouseHasMoved = False
     app.memory = [0 for _ in range(4096)]
-    app.files = findCh8Files('.ch8', findPaths('Chip8'))
-    app.filesColor = ['white' for _ in range(len(app.files))]
+    app.files = os.listdir('/Users')
+    app.displayedFiles = copy.copy(app.files)
+    app.currPath = '/Users'
+    app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
     app.dt = 0
     app.st = 0
     app.lastTimerUpdate = time.time()
@@ -47,6 +50,8 @@ def onAppStart(app):
     app.timerInterval = 1/60
     app.instructionInterval = 1/500
     app.stepsPerSecond = 500
+    app.selectedFile = ['/Users']
+    app.sfIndex = -1
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -58,16 +63,6 @@ def drawModes(app):
 def drawSelectFile(app):
     drawRect(app.width // 2 + app.width // 12, app.height // 5, app.width // 3, app.height // 10, fill=app.selectFileColor, border='white')
     drawLabel('Select File', 3 * app.width // 4, app.height // 4, size=app.width//15, fill=app.fileTextColor)
-
-def findCh8Files(fileType, paths):
-    if len(paths) == 0:
-        return []
-    _, extension = os.path.splitext(paths[0])
-    nextPaths = findCh8Files(fileType, paths[1:])
-    if fileType == extension:
-        return [paths[0]] + nextPaths
-    else:
-        return nextPaths
 
 def findFolderDir(folder, path):
     if folder in path:
@@ -92,7 +87,7 @@ def findPaths(folder):
     return result
 
 def drawFiles(app):
-    numOfFiles = len(app.files)
+    numOfFiles = len(app.displayedFiles)
     cols = 8
     rows = (numOfFiles + cols - 1) // cols
     cellWidth = app.width // cols
@@ -104,10 +99,10 @@ def drawFiles(app):
                 rLeft = col * cellWidth
                 rTop = row * cellHeight
                 drawRect(rLeft, rTop, cellWidth, cellHeight, fill=app.filesColor[fileIndex], border='black', borderWidth=1)
-                drawLabel(app.files[fileIndex][:-4], (rLeft + cellWidth // 2), (rTop + cellHeight // 2), fill='red', size=app.width//60)
+                drawLabel(app.displayedFiles[fileIndex], (rLeft + cellWidth // 2), (rTop + cellHeight // 2), fill='red', size=app.width//60)
 
 def drawFileHoverOverColor(app, mouseX, mouseY):
-    numOfFiles = len(app.files)
+    numOfFiles = len(app.displayedFiles)
     cols = 8
     rows = (numOfFiles + cols - 1) // cols
     cellWidth = app.width / cols
@@ -262,6 +257,26 @@ def onStep(app):
             app.lastInstructionTime = currentTime
 
 def onKeyPress(app, key):
+    if app.showFiles:
+        if key == 'left':
+            try:
+                app.selectedFile.pop()
+                app.currPath = '/'.join(app.selectedFile)
+                app.files = os.listdir(findFolderDir(app.selectedFile[-1], app.currPath))
+                app.displayedFiles = copy.copy(app.files)
+                app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
+            except Exception as e:
+                pass
+        elif key == 'f':
+            searchedFiles = str(app.getTextInput('Search File'))
+            app.displayedFiles = []
+            app.filesColor = []
+            for file in app.files:
+                searchedFile = file.lower()
+                if searchedFiles in searchedFile:
+                    app.displayedFiles.append(file)
+                    app.filesColor.append('white')
+
     if key in app.keyboard:
         keyIndex = app.keyboard[key]
         app.keyStates[keyIndex] = True
@@ -292,16 +307,26 @@ def onMousePress(app, mouseX, mouseY):
         if clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
             app.showFiles = True
         if not clickOnSelectFile(app, mouseX, mouseY) and app.showFiles:
-            selectedFile = fileSelected(app, mouseX, mouseY)
-            if selectedFile != None:
-                filePath = os.path.join(findFolderDir('Chip8', '/Users'), selectedFile)
-                f = open(filePath, 'rb')
-                program = list(f.read())
-                app.memory[512:512 + len(program)] = program
-                app.memory[0x1FF] = 1
-                app.fileSelected = True
-            app.initMode = False
-            app.showFiles = False
+            if app.selectedFile == []:
+                app.selectedFile = ['/Users']
+            app.selectedFile.append(fileSelected(app, mouseX, mouseY))
+            if app.selectedFile[-1] == None:
+                app.selectedFile.pop()
+            app.currPath = '/'.join(app.selectedFile)
+            print(app.selectedFile[-1][-4:])
+            if app.selectedFile[-1][-4:] == '.ch8':
+                    filePath = '/'.join(app.selectedFile)
+                    f = open(filePath, 'rb')
+                    program = list(f.read())
+                    app.memory[512:512 + len(program)] = program
+                    app.memory[0x1FF] = 1
+                    app.fileSelected = True
+                    app.initMode = False
+                    app.showFiles = False
+            elif app.selectedFile != []:
+                app.files = os.listdir(findFolderDir(app.selectedFile[-1], app.currPath))
+                app.displayedFiles = copy.copy(app.files)
+                app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
 
 
 def onMouseMove(app, mouseX, mouseY):
