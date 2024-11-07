@@ -164,7 +164,7 @@ def drawPixels(app):
     pixelY = (height) // 32
     for row in range(len(app.screen)):
         for pixel in range(len(app.screen[row])):
-            if app.screen[row][pixel]:
+            if app.screen[row][pixel] == 1:
                 drawRect(xInit + (pixel * pixelX), yInit + row * pixelY, pixelX, pixelY, align='center', fill='white')
 
 def drawPC(app):

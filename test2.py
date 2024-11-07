@@ -171,7 +171,7 @@ class CPU:
                         case 9:
                             pass
 
-app.cpu = CPU('test_opcode.ch8')
+self.cpu = CPU('test_opcode.ch8')
 
 
 # def onAppStart(app):

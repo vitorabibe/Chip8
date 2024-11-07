@@ -51,7 +51,7 @@ def onAppStart(app):
     app.instructionInterval = 1/500
     app.stepsPerSecond = 500
     app.selectedFile = ['/Users']
-    app.sfIndex = -1
+    app.query = ''
 
 def drawModes(app):
     drawLabel('Select Mode', app.width // 4, app.height // 4, size=app.width//15, fill='white')
@@ -267,13 +267,23 @@ def onKeyPress(app, key):
                 app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
             except Exception as e:
                 pass
-        elif key == 'f':
-            searchedFiles = str(app.getTextInput('Search File'))
+        elif key == 'backspace' and app.query != '':
+            print(app.query)
+            app.query = app.query[:-1]
+            print(app.query)
+            for file in app.files:
+                searchedFile = file.lower()
+                if app.query in searchedFile:
+                    app.displayedFiles.append(file)
+                    app.filesColor.append('white')
+        elif key.isalpha():
+            key = key.lower()
+            app.query += key
             app.displayedFiles = []
             app.filesColor = []
             for file in app.files:
                 searchedFile = file.lower()
-                if searchedFiles in searchedFile:
+                if app.query in searchedFile:
                     app.displayedFiles.append(file)
                     app.filesColor.append('white')
 
