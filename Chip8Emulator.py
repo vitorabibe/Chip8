@@ -3,51 +3,62 @@ import random
 import os
 import time
 import copy
+# from cpu import Cpu
+
+# Add a page class and inherit from it for all pages (Start, File, Program)
 
 class Cpu:
     def __init__(self):
+        # TODO: Give a better name
         self.v = [0 for i in range(16)]
         self.I = 0
+        # TODO: Delete
         self.i = 0
-        self.opcode = []
-        self.CPU = 0
+        # TODO: No Magic numbers
         self.pc = 512
         self.stack = []
         self.sPointer = 0
-        self.keyValue = None
         self.keyboard = {'1': 1, '2': 2, '3': 3, '4': 0xC,  'q': 4, 'w': 5, 'e': 6, 'r': 0xD,  'a': 7, 's': 8, 'd': 9, 'f': 0xE,  'z': 0xA, 'x': 0, 'c': 0xB, 'v': 0xF}
         self.keyStates = [False] * 16
         self.screen = [[0 for _ in range(64)] for _ in range(32)]
         self.instruction = 0
         self.command = ''
         self.memory = [0 for _ in range(4096)]
+        # TODO: Name better or add comment
         self.dt = 0
+        # TODO: Name better or add comment
         self.st = 0
     
+    # Generic name
     def write(self, program):
         self.memory[512:] = program
     
+    #TODO: Function literally does not read anything.
     def read(self, opcode):
         instruction = opcode >> 12
+        #TODO: Add comment to each one
         x = (opcode >> 8) & 0x0F
         y = (opcode >> 4) & 0x0F
         n = opcode & 0x000F
         kk = opcode & 0x00FF
         nnn = opcode & 0x0FFF
         match instruction:
-            case 0:
+            case 0: 
                 if opcode == 0x00E0:
+                    # 0x0000 - clear screen
                     self.instruction = 0.0
                     self.command = 'clears screen'
                     self.screen = [[0 for _ in range(64)] for _ in range(32)]
                     self.pc += 2
                 elif opcode == 0x00EE:
+                    # 0x00EE - return from 
                     self.instruction = 0.14
                     self.command = 'returns from subroutine'
                     self.pc = self.stack.pop()
                 else:
                     self.pc += 2          
             case 1:
+                # 0x1nnn - Jump
                 self.instruction = 1
                 self.command = f'set PC to {nnn}'
                 self.pc = nnn
@@ -115,6 +126,7 @@ class Cpu:
                     case 5:
                         self.instruction = 8.5
                         self.command = f'v[{x}] -= v[{y}]; Flag = NOT borrow'
+                        # TODO: Save result instead of oldX
                         oldX = self.v[x]
                         self.v[x] = (self.v[x] - self.v[y]) & 255
                         self.v[15] = 1 if oldX >= self.v[y] else 0
@@ -301,8 +313,9 @@ class Screen:
     def drawFiles(self, app):
         if app.displayedFiles != []:
             numOfFiles = len(app.displayedFiles)
-            cols = 8
-            rows = (numOfFiles + cols - 1) // cols
+            maxFilesPerCol = 80
+            rows = 80 if numOfFiles > 80 else numOfFiles
+            cols = (numOfFiles // maxFilesPerCol) + 1
             cellWidth = app.width // cols
             cellHeight = app.height // rows
             for row in range(rows):
@@ -345,6 +358,7 @@ class Screen:
         drawLabel(f'Opcode: {opcode}', opcodeX + (opcodeLen) // 2, opcodeY + (opcodeHeight // 2), size = opcodeLen // 20, fill='white')
 
     def drawInstruction(self, app):
+        # TODO: Change var names
         opcodeX = 0
         opcodeY = self.height // 20
         opcodeLen = self.width
@@ -365,6 +379,7 @@ class Screen:
         drawLabel(f'I: {app.cpu.I}', x + (len) // 2, y + (height // 2), size = len // 5, fill=color)
 
     def drawRegisters(self, app):
+        # TODO: Maybe save oldCPU and compare it to set things red
         xInit = 0
         yInit = 3 * (self.height // 20)
         len = self.width // 6
@@ -437,7 +452,10 @@ class Screen:
 
     def hoveringOverSelectFile(self, app, mouseX, mouseY):
         if not app.fileSelected:
-            if self.width // 2 + self.width // 12 < mouseX <  self.width // 2 + self.width // 12 + self.width // 3 and self.height // 5 < mouseY < self.height // 5 + self.height // 10:
+            # TODO: Add comments / give names
+            a = self.width // 2 + self.width // 12 < mouseX <  self.width // 2 + self.width // 12 + self.width // 3
+            b = self.height // 5 < mouseY < self.height // 5 + self.height // 10
+            if a and b:
                 self.selectFileColor = 'white'
                 self.fileTextColor = 'black'
             else:
@@ -448,10 +466,11 @@ class Screen:
     
     def drawFileHoverOverColor(self, app, mouseX, mouseY):
         numOfFiles = len(app.displayedFiles)
-        cols = 8
-        rows = (numOfFiles + cols - 1) // cols
-        cellWidth = self.width / cols
-        cellHeight = self.height / rows
+        maxFilesPerCol = 80
+        rows = 80 if numOfFiles > 80 else numOfFiles
+        cols = (numOfFiles // maxFilesPerCol) + 1
+        cellWidth = app.width // cols
+        cellHeight = app.height // rows
         for row in range(rows):
             for col in range(cols):
                 fileIndex = row * cols + col
@@ -463,7 +482,6 @@ class Screen:
                     else:
                         app.filesColor[fileIndex] = 'white'
 
-
 def onAppStart(app):
     app.background='black'
     app.setMaxShapeCount(10000)
@@ -474,7 +492,7 @@ def onAppStart(app):
     app.fileSelected = False
     app.modeSelected = False
     app.mouseHasMoved = False
-    app.files = os.listdir('/Users')
+    app.files = os.listdir('/Users') + ['..']
     app.displayedFiles = copy.copy(app.files)
     app.currPath = '/Users'
     app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
@@ -482,6 +500,7 @@ def onAppStart(app):
     app.lastInstructionTime = time.time()
     app.timerInterval = 1/60
     app.instructionInterval = 1/500
+    # BETTER NAME
     app.selectedFile = ['/Users']
     app.query = ''
     app.cpu = Cpu()
@@ -511,11 +530,13 @@ def findPaths(folder):
 
 def fileSelected(app, mouseX, mouseY):
     if app.displayedFiles != []:
+        # TODO: getFileLayoutData(numOfFiles) -> cols, rows, cellWidth, cellHeigh
         numOfFiles = len(app.displayedFiles)
         cols = 8
         rows = (numOfFiles + cols - 1) // cols
         cellWidth = app.width / cols
         cellHeight = app.height / rows
+        
         for row in range(rows):
             for col in range(cols):
                 fileIndex = row * cols + col
@@ -553,10 +574,12 @@ def onStep(app):
 def onKeyPress(app, key):
     if app.showFiles:
         if key == 'left':
+            # Too deep, should be another function
             try:
                 app.selectedFile.pop()
                 app.currPath = '/'.join(app.selectedFile)
-                app.files = os.listdir(findFolderDir(app.selectedFile[-1], app.currPath))
+                # TODO: add function to updateFiles(directory)
+                app.files = os.listdir(findFolderDir(app.selectedFile[-1], app.currPath)) + ['..']
                 app.displayedFiles = copy.copy(app.files)
                 app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
             except Exception as e:
@@ -572,6 +595,7 @@ def onKeyPress(app, key):
             key = key.lower()
             app.query += key
             app.displayedFiles = []
+            # TODO: Optimize here. List can only get smaller.
             app.filesColor = []
             for file in app.files:
                 searchedFile = file.lower()
@@ -585,26 +609,29 @@ def onKeyPress(app, key):
             app.cpu.keyStates[keyIndex] = True
 
 def onKeyRelease(app, key):
+    # TODO: &
     if not app.initScreen:
         if key in app.cpu.keyboard:
             keyIndex = app.cpu.keyboard[key]
             app.cpu.keyStates[keyIndex] = False
 
 def clickOnMode(app, mouseX, mouseY):
-        if not app.modeSelected:
-            if app.height // 3 <= mouseY <= ((app.height // 3) + (app.height // 4)):
-                if 0 < mouseX < app.width // 4:
-                    app.mode = 'game'
-                    app.modeSelected = True
-                elif app.width // 4 < mouseX < app.width // 2:
-                    app.mode = 'CPU'
-                    app.modeSelected = True
+    if not app.modeSelected:
+        if app.height // 3 <= mouseY <= ((app.height // 3) + (app.height // 4)):
+            if 0 < mouseX < app.width // 4:
+                app.mode = 'game'
+                app.modeSelected = True
+            elif app.width // 4 < mouseX < app.width // 2:
+                app.mode = 'CPU'
+                app.modeSelected = True
 
 def clickOnSelectFile(app, mouseX, mouseY):
+    # TODO: Make more readable
     if not app.fileSelected and app.width // 2 + app.width // 12 < mouseX <  app.width // 2 + app.width // 12 + app.width // 3 and app.height // 5 < mouseY < app.height // 5 + app.height // 10:
         return True
 
 def onMousePress(app, mouseX, mouseY):
+    # Split in more functions (handleClickonShowFileScreen?)
     if app.initScreen:
         clickOnMode(app, mouseX, mouseY)
         if clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
@@ -617,6 +644,7 @@ def onMousePress(app, mouseX, mouseY):
                 app.selectedFile.pop()
             app.currPath = '/'.join(app.selectedFile)
             if app.selectedFile[-1][-4:] == '.ch8':
+                # A click handler should not be reading a file. Call another function
                     filePath = '/'.join(app.selectedFile)
                     f = open(filePath, 'rb')
                     program = list(f.read())
