@@ -111,7 +111,6 @@ class Cpu:
                     case 5:
                         self.instruction = 8.5
                         self.command = f'v[{x}] -= v[{y}]; Flag = NOT borrow'
-                        # TODO: Save result instead of oldX
                         result = self.registers[x] - self.registers[y]
                         self.registers[x] = (self.registers[x] - self.registers[y]) & 255
                         self.registers[15] = 1 if result >= 0 else 0

@@ -34,13 +34,12 @@ class CpuScreen(Screen):
         drawLabel(f'Opcode: {opcode}', opcodeX + (opcodeLen) // 2, opcodeY + (opcodeHeight // 2), size = opcodeLen // 20, fill='white')
 
     def drawInstruction(self, app):
-        # TODO: Change var names
-        opcodeX = 0
-        opcodeY = self.height // 20
-        opcodeLen = self.width
-        opcodeHeight = self.height // 20
-        drawRect(opcodeX, opcodeY, opcodeLen, opcodeHeight, fill=None, border='white')
-        drawLabel(f'Instruction: {app.cpu.instruction}, {app.cpu.command}', opcodeX + (opcodeLen) // 2, opcodeY + (opcodeHeight // 2), size = opcodeLen // 30, fill='white')
+        instructionX = 0
+        instructionY = self.height // 20
+        instructionLen = self.width
+        instructionHeight = self.height // 20
+        drawRect(instructionX, instructionY, instructionLen, instructionHeight, fill=None, border='white')
+        drawLabel(f'Instruction: {app.cpu.instruction}, {app.cpu.command}', instructionX + (instructionLen) // 2, instructionY + (instructionHeight // 2), size = instructionLen // 30, fill='white')
 
     def drawI(self, app):
         x = 0
@@ -55,7 +54,6 @@ class CpuScreen(Screen):
         drawLabel(f'I: {app.cpu.I}', x + (len) // 2, y + (height // 2), size = len // 5, fill=color)
 
     def drawRegisters(self, app):
-        # TODO: Maybe save oldCPU and compare it to set things red
         xInit = 0
         yInit = 3 * (self.height // 20)
         len = self.width // 6
@@ -70,9 +68,7 @@ class CpuScreen(Screen):
                 color = 'white'
             if not i == 15:
                 drawRect(xInit, y, len, height, fill=None, border='white')
-                drawLabel(f'v[{i}] = {app.cpu.v[i]}', xInit + len // 2, y + height // 2, size = len // 7, fill=color)
+                drawLabel(f'v[{i}] = {app.cpu.registers[i]}', xInit + len // 2, y + height // 2, size = len // 7, fill=color)
             else:
                 drawRect(xInit, y, len, height, fill=None, border='white')
-                drawLabel(f'Flag: {app.cpu.v[i]}', xInit + len // 2, y + height // 2, size = len // 7, fill=color)    
-
-
+                drawLabel(f'Flag: {app.cpu.registers[i]}', xInit + len // 2, y + height // 2, size = len // 7, fill=color)    

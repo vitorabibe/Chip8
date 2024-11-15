@@ -37,10 +37,10 @@ class InitScreen(Screen):
     
     def drawFileHoverOverColor(self, app, mouseX, mouseY):
         if not app.fileWasSelected:
-            # TODO: Add comments / give names
-            a = self.width // 2 + self.width // 12 < mouseX <  self.width // 2 + self.width // 12 + self.width // 3
-            b = self.height // 5 < mouseY < self.height // 5 + self.height // 10
-            if a and b:
+            inMouseXRange = (self.width // 2 + self.width // 12 < mouseX <  self.width // 2 + 
+                             self.width // 12 + self.width // 3)
+            inMouseYRange = self.height // 5 < mouseY < self.height // 5 + self.height // 10
+            if inMouseXRange and inMouseYRange:
                 self.selectFileColor = 'white'
                 self.fileTextColor = 'black'
             else:

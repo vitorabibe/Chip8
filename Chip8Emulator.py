@@ -74,10 +74,10 @@ def onStep(app):
             readOpcode(app, currentTime)
 
 def handleTimers(app, currentTime):
-    if app.cpu.dt > 0:
-        app.cpu.dt -= 1
-    if app.cpu.st > 0:
-        app.cpu.st -= 1
+    if app.cpu.delayTimer > 0:
+        app.cpu.delayTimer -= 1
+    if app.cpu.soundTimer > 0:
+        app.cpu.soundTimer -= 1
     app.lastTimerUpdate = currentTime
 
 def readOpcode(app, currentTime):
