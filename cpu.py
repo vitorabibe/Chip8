@@ -17,6 +17,13 @@ class Cpu:
         self.delayTimer = 0
         self.soundTimer = 0
     
+    def changeKeyboard(self, key, newKey):
+        print(key)
+        print(newKey)
+        if newKey not in self.keyboard:
+            self.keyboard[newKey] = self.keyboard.pop(key)
+            print(self.keyboard)
+    
     def writeProgramIntoMemory(self, program):
         self.memory[512:] = program
     
@@ -41,7 +48,7 @@ class Cpu:
                     self.command = 'returns from subroutine'
                     self.pc = self.stack.pop()
                 else:
-                    self.pc += 2          
+                    self.pc += 2
             case 1:
                 # 0x1nnn - Jump
                 self.instruction = 1

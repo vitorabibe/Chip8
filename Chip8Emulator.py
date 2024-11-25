@@ -1,12 +1,19 @@
+#TODO: make readme screen work/show correct text
+#TODO: make keyboard mapper work. As it is, it can understand which key to change and what key to change it to
+# but it doesn't change the key in the dictionary, and crashes the code instead
+#TODO: make screen run at 60 fps, but game processing run at 500 fps
+#TODO: finish adding comments to code
+
 from cmu_graphics import *
 import os
 import time
-import copy
 from cpu import Cpu
 from gameScreen import GameScreen
 from cpuScreen import CpuScreen
 from filesScreen import FilesScreen
 from initScreen import InitScreen
+from readMeScreen import ReadMeScreen
+from keyboardMapper import KeyboardMapper
 
 def onAppStart(app):
     app.background='black'
@@ -16,11 +23,14 @@ def onAppStart(app):
     createDisplayedFiles(app)
     app.currPath = '/Users'
     app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
+    app.keyColor = ['black' for _ in range(16)]
     setTimers(app)
     app.currentDir = ['/Users']
     app.query = ''
     app.cpu = Cpu()
     app.screen = InitScreen(app)
+    app.showReadMe = False
+    app.showKeyboardMapper = False
 
 def setStates(app):
     app.initMode = True
@@ -93,7 +103,8 @@ def onKeyPress(app, key):
             deleteQuery(app)
         elif key.isalpha() or key == 'space':
             updateQuery(app, key)
-
+    if app.showKeyboardMapper:
+        app.screen.changedKey(app, key)
     if not app.initScreen:
         handleGameKeyPress(app, key)
 
@@ -159,13 +170,29 @@ def clickOnSelectFile(app, mouseX, mouseY):
     if not app.fileWasSelected and inMouseXRange and inMouseYRange:
         return True
 
+def clickOnReadMe(app, mouseX, mouseY):
+    if app.height // 2 + app.height // 4 <= mouseY <= app.height:
+        if 0 <= mouseX <= app.width // 2:
+            return True
+
+def clickOnKeyboardMapper(app, mouseX, mouseY):
+    if app.height // 2 + app.height // 4 <= mouseY <= app.height:
+        if app.width // 2 <= mouseX <= app.width:
+            return True
+
 def onMousePress(app, mouseX, mouseY):
     if app.initScreen:
         clickOnMode(app, mouseX, mouseY)
-        if clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
+        if clickOnReadMe(app, mouseX, mouseY):
+            app.showReadMe = True
+        elif clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
             app.showFiles = True
+        elif clickOnKeyboardMapper(app, mouseX, mouseY):
+            app.showKeyboardMapper = True
         elif app.showFiles:
             handleClickOnFiles(app, mouseX, mouseY)
+        elif app.showKeyboardMapper:
+            app.screen.keyChanger(app, mouseX, mouseY)
     handleScreenMode(app)
 
 def handleClickOnFiles(app, mouseX, mouseY):
@@ -195,8 +222,12 @@ def handleScreenMode(app):
     if app.initScreen: 
         if app.showFiles:
             app.screen = FilesScreen(app)
+        elif app.showKeyboardMapper:
+            app.screen = KeyboardMapper(app)
+        elif app.showReadMe:
+            app.screen = ReadMeScreen(app)
         elif app.fileWasSelected and not app.modeSelected:
-                app.screen = InitScreen(app)
+            app.screen = InitScreen(app)
         elif app.fileWasSelected and app.modeSelected:
             app.initScreen = False
     if app.modeSelected and app.fileWasSelected:
@@ -207,12 +238,16 @@ def handleScreenMode(app):
 
 def onMouseMove(app, mouseX, mouseY):
     if app.initScreen:
-        if not app.modeSelected and not app.showFiles:
-            app.screen.drawModesHoverOvers(mouseX, mouseY)
-        if not app.showFiles:
+        if not app.showReadMe and not app.modeSelected and not app.showFiles and not app.showFiles and not app.showKeyboardMapper:
             app.screen.drawFileHoverOverColor(app, mouseX, mouseY)
+            app.screen.drawModesHoverOvers(mouseX, mouseY)
+            app.screen.drawReadMeHoverOverColor(mouseX, mouseY)
+            app.screen.drawKeyboardMapperHoverOverColor(mouseX, mouseY)
         elif app.showFiles:
             app.screen.drawFilesHoverOver(app, mouseX, mouseY)
+        elif app.showKeyboardMapper:
+            app.screen.drawKeysHoverOver(app, mouseX, mouseY)
+            
 
 def onMouseDrag(app, mouseX, mouseY):
     if app.width // 2 + app.width // 20 <= mouseX <= app.width - app.width // 20 and app.screen.cy - 20 <= mouseY <= app.screen.cy + 20:

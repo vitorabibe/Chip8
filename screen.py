@@ -13,9 +13,13 @@ class Screen:
         self.cpuTextColor = 'white'
         self.selectFileColor = 'black'
         self.fileTextColor = 'white'
+        self.readMeColor = 'black'
+        self.readMeTextColor = 'white'
+        self.keyboardMapperColor = 'black'
+        self.keyboardMapperTextColor = 'white'
         self.width = app.width
         self.height = app.height
         self.stepsPerSecond = 250
         self.mouseHasMoved = app.mouseHasMoved
-    
-    
+        self.keyboard = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'z', 'x', 'c', 'v']
+        self.keyPressed = None
