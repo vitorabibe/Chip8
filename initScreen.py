@@ -25,7 +25,7 @@ class InitScreen(Screen):
     
     def drawPixelArtTitle(self):
         pixelSize = self.width // 80
-        startX = self.width // 4
+        x = self.width // 4
         startY = self.height // 12
         
         patterns = {
@@ -37,7 +37,6 @@ class InitScreen(Screen):
             '2': [[1,1,1,1],[0,0,0,1],[0,1,1,1],[1,0,0,0],[1,1,1,1]]
         }
         
-        x = startX
         for char in "CHIP 112":
             if char == ' ':
                 x += pixelSize * 5

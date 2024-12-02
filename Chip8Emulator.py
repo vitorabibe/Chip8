@@ -219,20 +219,20 @@ def readFile(app):
 
 def handleScreenMode(app):
     if app.initScreen:
-        if app.showFiles:
-            app.screen = FilesScreen(app)
-        elif app.showKeyboardMapper:
-            app.screen = KeyboardMapper(app)
-        elif app.showReadMe:
-            app.screen = ReadMeScreen(app)
-        elif app.fileWasSelected and not app.modeSelected:
-            app.screen = InitScreen(app)
-        elif app.fileWasSelected and app.modeSelected:
+        if app.fileWasSelected and app.modeSelected:
             app.initScreen = False
             if app.mode == 'CPU':
                 app.screen = CpuScreen(app)
             elif app.mode == 'game':
                 app.screen = GameScreen(app)
+        elif app.showFiles:
+            app.screen = FilesScreen(app)
+        elif app.showKeyboardMapper:
+            app.screen = KeyboardMapper(app)
+        elif app.showReadMe:
+            app.screen = ReadMeScreen(app)
+        elif app.fileWasSelected:
+            app.screen = InitScreen(app)
 
 def onMouseMove(app, mouseX, mouseY):
     if app.initScreen and hasattr(app.screen, 'drawModesHoverOvers'):
