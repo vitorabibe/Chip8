@@ -1,5 +1,5 @@
-from screen import *
 from math import cos, sin, radians
+from screen import *
 
 class InitScreen(Screen):
     def __init__(self, app):
@@ -124,6 +124,25 @@ class InitScreen(Screen):
             return
         
         self.notHoveringOver()
+
+    def handleModeClicks(self, app, mouseX, mouseY):
+        startY = self.height // 3
+        modeWidth = self.width // 4
+        spacing = modeWidth // 2 + modeWidth // 3
+        radius = modeWidth // 2
+        centerX = self.width // 4
+        
+        centerY1 = startY
+        if ((mouseX - centerX)**2 + (mouseY - centerY1)**2 <= radius**2):
+            app.mode = 'game'
+            app.modeSelected = True
+            return
+        
+        centerY2 = startY + spacing
+        if ((mouseX - centerX)**2 + (mouseY - centerY2)**2 <= radius**2):
+            app.mode = 'CPU'
+            app.modeSelected = True
+            return
 
     def drawKeyboardMapper(self):
         drawRect(self.width // 2,

@@ -4,7 +4,7 @@ class FilesScreen(Screen):
     def drawFilesHoverOver(self, app, mouseX, mouseY):
         if app.displayedFiles != []:
             numOfFiles = len(app.displayedFiles)
-            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles)
+            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles, app)
             for row in range(rows):
                 for col in range(cols):
                     fileIndex, rLeft, rTop = FilesScreen.getBounds(row, col, cols, numOfFiles, cellWidth, cellHeight)
@@ -16,7 +16,7 @@ class FilesScreen(Screen):
     def render(self, app):
         if app.displayedFiles != []:
             numOfFiles = len(app.displayedFiles)
-            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles)
+            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles, app)
             for row in range(rows):
                 for col in range(cols):
                     fileIndex, rLeft, rTop = FilesScreen.getBounds(row, col, cols, numOfFiles, cellWidth, cellHeight)
@@ -26,7 +26,7 @@ class FilesScreen(Screen):
     def fileSelected(self, app, mouseX, mouseY):
         if app.displayedFiles != []:
             numOfFiles = len(app.displayedFiles)
-            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles)
+            cols, rows, cellWidth, cellHeight = FilesScreen.getFileLayoutData(numOfFiles, app)
             for row in range(rows):
                 for col in range(cols):
                     fileIndex, rLeft, rTop = FilesScreen.getBounds(row, col, cols, numOfFiles, cellWidth, cellHeight)
@@ -34,7 +34,7 @@ class FilesScreen(Screen):
                         return app.displayedFiles[fileIndex]
         return None
 
-    def getFileLayoutData(numOfFiles):
+    def getFileLayoutData(numOfFiles, app):
         maxFilesPerCol = 80
         rows = 80 if numOfFiles > 80 else numOfFiles
         cols = (numOfFiles // maxFilesPerCol) + 1

@@ -1,3 +1,11 @@
+#TODO: finish improving UI for the Init screen, maybe make Chip 112 text more "majestic"
+#TODO: redesign the file picker screen to look like finder
+#TODO: if time, make keyboard mapper, read me, and improve their UIs
+#TODO: make drawings resize again when screen is resized
+#citation: used help from LLM to improve the UI of my Init screen + to find ways of implementing the new refresh rate logic
+
+#focus on UI for file picker and starter interface and figure out the refresh rate logic (done)
+
 from cmu_graphics import *
 import os
 import time
@@ -13,12 +21,14 @@ from keyboardMapper import KeyboardMapper
 def gameLoop(app):
     while True:
         if not app.initScreen:
-            currentTime = time.time()
-            if currentTime - app.lastInstructionTime >= app.instructionInterval:
+            if app.mode == 'CPU':
                 opcode = app.cpu.memory[app.cpu.pc] << 8 | app.cpu.memory[app.cpu.pc + 1]
                 app.cpu.executeOpcode(opcode)
-                app.lastInstructionTime = currentTime
-            time.sleep(0.0001)
+                time.sleep(0.25)
+            elif app.mode == 'game':
+                opcode = app.cpu.memory[app.cpu.pc] << 8 | app.cpu.memory[app.cpu.pc + 1]
+                app.cpu.executeOpcode(opcode)
+                time.sleep(0.002)
 
 def onAppStart(app):
     app.background = 'black'
@@ -42,6 +52,7 @@ def onAppStart(app):
     app.stepsPerSecond = 1
     gameThread = threading.Thread(target=gameLoop, args=(app,), daemon=True)
     gameThread.start()
+    app.stepsPerSecond = 60
 
 def setStates(app):
     app.initMode = True
@@ -157,14 +168,8 @@ def onKeyRelease(app, key):
         app.cpu.keyStates[keyIndex] = False
 
 def clickOnMode(app, mouseX, mouseY):
-    if not app.modeSelected:
-        if app.height // 3 <= mouseY <= ((app.height // 3) + (app.height // 4)):
-            if 0 < mouseX < app.width // 4:
-                app.mode = 'game'
-                app.modeSelected = True
-            elif app.width // 4 < mouseX < app.width // 2:
-                app.mode = 'CPU'
-                app.modeSelected = True
+    if not app.modeSelected and app.initScreen:
+        app.screen.handleModeClicks(app, mouseX, mouseY)
 
 def clickOnSelectFile(app, mouseX, mouseY):
     inMouseXRange = app.width // 2 + app.width // 12 < mouseX < app.width // 2 + app.width // 12 + app.width // 3
@@ -186,28 +191,31 @@ def onMousePress(app, mouseX, mouseY):
             app.showReadMe = True
         elif clickOnSelectFile(app, mouseX, mouseY) and not app.showFiles:
             app.showFiles = True
-        elif clickOnKeyboardMapper(app, mouseX, mouseY):
-            app.showKeyboardMapper = True
         elif app.showFiles:
             handleClickOnFiles(app, mouseX, mouseY)
+        elif clickOnKeyboardMapper(app, mouseX, mouseY):
+            app.showKeyboardMapper = True
         elif app.showKeyboardMapper:
             app.screen.keyChanger(app, mouseX, mouseY)
     handleScreenMode(app)
 
 def handleClickOnFiles(app, mouseX, mouseY):
-    app.query = ''
-    if not app.currentDir:
-        app.currentDir = ['/Users']
-    selectedFile = app.screen.fileSelected(app, mouseX, mouseY)
-    if selectedFile is not None:
-        app.currentDir.append(selectedFile)
-        app.currPath = '/'.join(app.currentDir)
-        if selectedFile.endswith('.ch8'):
-            readFile(app)
-        else:
-            app.files = os.listdir(findFolderDir(app.currentDir[-1], app.currPath))
-            createDisplayedFiles(app)
-            app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
+    try:
+        app.query = ''
+        if not app.currentDir:
+            app.currentDir = ['/Users']
+        selectedFile = app.screen.fileSelected(app, mouseX, mouseY)
+        if selectedFile is not None:
+            app.currentDir.append(selectedFile)
+            app.currPath = '/'.join(app.currentDir)
+            if selectedFile.endswith('.ch8'):
+                readFile(app)
+            else:
+                app.files = os.listdir(findFolderDir(app.currentDir[-1], app.currPath))
+                createDisplayedFiles(app)
+                app.filesColor = ['white' for _ in range(len(app.displayedFiles))]
+    except:
+        pass
 
 def readFile(app):
     filePath = '/'.join(app.currentDir)
@@ -247,21 +255,5 @@ def onMouseMove(app, mouseX, mouseY):
                 app.screen.drawKeyboardMapperHoverOverColor(mouseX, mouseY)
         elif app.showFiles and hasattr(app.screen, 'drawFilesHoverOver'):
             app.screen.drawFilesHoverOver(app, mouseX, mouseY)
-
-def onMouseDrag(app, mouseX, mouseY):
-    if hasattr(app.screen, 'cy'):
-        if (app.width // 2 + app.width // 20 <= mouseX <= app.width - app.width // 20 and 
-            app.screen.cy - 20 <= mouseY <= app.screen.cy + 20):
-            app.screen.cx = mouseX
-            app.mouseHasMoved = True
-            calculateStepsPerSecond(app)
-
-def calculateStepsPerSecond(app):
-    baseX = app.width // 2 + app.width // 20
-    relativeX = app.screen.cx - baseX
-    maxX = app.width - app.width // 20 - baseX
-    app.stepsPerSecond = max(1, int((500 * relativeX) / maxX))
-    if hasattr(app.screen, 'stepsPerSecond'):
-        app.screen.stepsPerSecond = app.stepsPerSecond
 
 runApp()
