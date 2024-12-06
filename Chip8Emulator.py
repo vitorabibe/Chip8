@@ -244,16 +244,11 @@ def handleScreenMode(app):
 
 def onMouseMove(app, mouseX, mouseY):
     if app.initScreen and hasattr(app.screen, 'drawModesHoverOvers'):
-        if not any([app.showReadMe, app.modeSelected, app.showFiles, app.showKeyboardMapper]):
-            if hasattr(app.screen, 'drawFileHoverOverColor'):
-                app.screen.drawFileHoverOverColor(app, mouseX, mouseY)
-            if hasattr(app.screen, 'drawModesHoverOvers'):
-                app.screen.drawModesHoverOvers(mouseX, mouseY)
-            if hasattr(app.screen, 'drawReadMeHoverOverColor'):
-                app.screen.drawReadMeHoverOverColor(mouseX, mouseY)
-            if hasattr(app.screen, 'drawKeyboardMapperHoverOverColor'):
-                app.screen.drawKeyboardMapperHoverOverColor(mouseX, mouseY)
-        elif app.showFiles and hasattr(app.screen, 'drawFilesHoverOver'):
-            app.screen.drawFilesHoverOver(app, mouseX, mouseY)
+        if hasattr(app.screen, 'drawModesHoverOvers'):
+            app.screen.drawModesHoverOvers(mouseX, mouseY)
+        if hasattr(app.screen, 'drawFileHoverOverColor'):
+            app.screen.drawFileHoverOverColor(mouseX, mouseY)
+    elif app.showFiles and hasattr(app.screen, 'drawFilesHoverOver'):
+        app.screen.drawFilesHoverOver(app, mouseX, mouseY)
 
 runApp()

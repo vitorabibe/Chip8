@@ -21,7 +21,7 @@ class FilesScreen(Screen):
                 for col in range(cols):
                     fileIndex, rLeft, rTop = FilesScreen.getBounds(row, col, cols, numOfFiles, cellWidth, cellHeight)
                     drawRect(rLeft, rTop, cellWidth, cellHeight, fill=app.filesColor[fileIndex], border='black', borderWidth=1)
-                    drawLabel(app.displayedFiles[fileIndex], (rLeft + cellWidth // 2), (rTop + cellHeight // 2), fill='red', size=self.width//60)
+                    drawLabel(app.displayedFiles[fileIndex], (rLeft + cellWidth // 2), (rTop + cellHeight // 2), fill='red', size=app.width//60)
 
     def fileSelected(self, app, mouseX, mouseY):
         if app.displayedFiles != []:

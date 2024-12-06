@@ -5,11 +5,11 @@ class GameScreen(Screen):
         if app.mode == 'game':
             xInit = 0
             yInit = 0
-            width, height = self.width, self.height
+            width, height = app.width, app.height
         else:
-            xInit = self.width // 6 + 20
-            yInit = self.height // 10 + 20
-            width, height = self.width - xInit, self.height - yInit
+            xInit = app.width // 6 + 20
+            yInit = app.height // 10 + 20
+            width, height = app.width - xInit, app.height - yInit
         pixelX = (width) // 64
         pixelY = (height) // 32
         for row in range(len(app.cpu.screen)):

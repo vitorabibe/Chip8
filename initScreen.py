@@ -13,20 +13,18 @@ class InitScreen(Screen):
         self.readMeTextColor = 'white'
         self.keyboardMapperColor = 'black'
         self.keyboardMapperTextColor = 'white'
-        self.width = app.width
-        self.height = app.height
 
     def render(self, app):
-        self.drawPixelArtTitle()
-        self.drawModes()
-        self.drawSelectFile()
-        self.drawReadMeScreen()
-        self.drawKeyboardMapper()
+        self.drawPixelArtTitle(app)
+        self.drawModes(app)
+        self.drawSelectFile(app)
+        # self.drawReadMeScreen(app)
+        # self.drawKeyboardMapper(app)
     
-    def drawPixelArtTitle(self):
-        pixelSize = self.width // 80
-        x = self.width // 4
-        startY = self.height // 12
+    def drawPixelArtTitle(self, app):
+        pixelSize = app.width // 80
+        x = app.width // 4
+        startY = app.height // 12
         
         patterns = {
             'C': [[0,1,1,1],[1,1,0,0],[1,0,0,0],[1,1,0,0],[0,1,1,1]],
@@ -52,12 +50,12 @@ class InitScreen(Screen):
                                fill='white')
             x += pixelSize * 5
 
-    def drawModes(self):
-        startY = self.height // 3
-        modeWidth = self.width // 4
+    def drawModes(self, app):
+        startY = app.height // 2.5
+        modeWidth = app.width // 4
         spacing = modeWidth // 2 + modeWidth // 3
         radius = modeWidth // 2
-        centerX = self.width // 4
+        centerX = app.width // 4
         
         points1 = []
         centerY1 = startY
@@ -80,15 +78,15 @@ class InitScreen(Screen):
                     fill=self.cpuColor, border='white')
         
         drawLabel('Play Chip8 Game', centerX, centerY1,
-                 fill=self.gameTextColor, size=self.width//45, bold=True)
+                 fill=self.gameTextColor, size=app.width//45, bold=True)
         drawLabel('CPU simulator', centerX, centerY2,
-                 fill=self.cpuTextColor, size=self.width//45, bold=True)
+                 fill=self.cpuTextColor, size=app.width//45, bold=True)
 
-    def drawSelectFile(self):
-        startY = self.height // 4 + self.height // 8
-        folderX = self.width * 3 // 4 - self.width // 12
-        folderWidth = self.width // 6
-        folderHeight = self.height // 8
+    def drawSelectFile(self, app):
+        startY = app.height // 3 + app.height // 8
+        folderX = app.width * 3 // 4 - app.width // 12
+        folderWidth = app.width // 6
+        folderHeight = app.height // 8
         
         drawPolygon(folderX, startY + folderHeight//4,
                     folderX + folderWidth, startY + folderHeight//4,
@@ -96,22 +94,22 @@ class InitScreen(Screen):
                     folderX, startY + folderHeight,
                     fill=self.selectFileColor, border='white')
         
-        drawPolygon(folderX + folderWidth//6, startY,
-                    folderX + folderWidth//2, startY,
+        drawPolygon(folderX, startY,
+                    folderX + folderWidth//2 - folderWidth//6, startY,
                     folderX + folderWidth//2, startY + folderHeight//4,
-                    folderX + folderWidth//6, startY + folderHeight//4,
+                    folderX, startY + folderHeight//4,
                     fill=self.selectFileColor, border='white')
         
         drawLabel('Select File', folderX + folderWidth//2,
-                 startY + folderHeight//1.5, size=self.width//50,
+                 startY + folderHeight//1.5, size=app.width//50,
                  fill=self.fileTextColor)
 
     def drawModesHoverOvers(self, mouseX, mouseY):
-        startY = self.height // 3
-        modeWidth = self.width // 4
+        startY = app.height // 3
+        modeWidth = app.width // 4
         spacing = modeWidth // 2 + modeWidth // 3
         radius = modeWidth // 2
-        centerX = self.width // 4
+        centerX = app.width // 4
         
         centerY1 = startY
         if ((mouseX - centerX)**2 + (mouseY - centerY1)**2 <= radius**2):
@@ -124,13 +122,44 @@ class InitScreen(Screen):
             return
         
         self.notHoveringOver()
+    
+    def drawFileHoverOverColor(self, mouseX, mouseY):
+        startY = app.height // 3 + app.height // 8
+        folderX = app.width * 3 // 4 - app.width // 12
+        folderWidth = app.width // 6
+        folderHeight = app.height // 8
+
+        inMouseXRange = folderX <= mouseX <= folderX + folderWidth
+        inMouseYRange = startY <= mouseY <= startY + folderHeight
+
+        if inMouseXRange and inMouseYRange:
+            self.drawFileHoverOver()
+        else:
+            self.notHoveringOverFile()
+
+    def drawFileHoverOver(self):
+        self.selectFileColor = 'white'
+        self.fileTextColor = 'black'
+
+    def notHoveringOverFile(self):
+        self.selectFileColor = 'black'
+        self.fileTextColor = 'white'
+
+    def drawFileHoverOver(self):
+        self.selectFileColor = 'white'
+        self.fileTextColor = 'black'
+
+    def notHoveringOverFile(self):
+        self.selectFileColor = 'black'
+        self.fileTextColor = 'white'
+
 
     def handleModeClicks(self, app, mouseX, mouseY):
-        startY = self.height // 3
-        modeWidth = self.width // 4
+        startY = app.height // 3
+        modeWidth = app.width // 4
         spacing = modeWidth // 2 + modeWidth // 3
         radius = modeWidth // 2
-        centerX = self.width // 4
+        centerX = app.width // 4
         
         centerY1 = startY
         if ((mouseX - centerX)**2 + (mouseY - centerY1)**2 <= radius**2):
@@ -144,30 +173,30 @@ class InitScreen(Screen):
             app.modeSelected = True
             return
 
-    def drawKeyboardMapper(self):
-        drawRect(self.width // 2,
-                self.height // 2 + self.height // 4,
-                self.width // 2, self.height // 4,
-                fill=self.keyboardMapperColor,
-                border='white')
-        drawLabel('Keyboard Mapper',
-                 self.width // 2 + self.width // 4,
-                 self.height - self.height // 8,
-                 size=self.width // 17,
-                 fill=self.keyboardMapperTextColor)
+    # def drawKeyboardMapper(self, app):
+    #     drawRect(app.width // 2,
+    #             app.height // 2 + app.height // 4,
+    #             app.width // 2, app.height // 4,
+    #             fill=self.keyboardMapperColor,
+    #             border='white')
+    #     drawLabel('Keyboard Mapper',
+    #              app.width // 2 + app.width // 4,
+    #              app.height - app.height // 8,
+    #              size=app.width // 17,
+    #              fill=self.keyboardMapperTextColor)
 
-    def drawReadMeScreen(self):
-        drawRect(0, self.height // 2 + self.height // 4,
-                self.width // 2, self.height // 4,
-                fill=self.readMeColor, border='white')
-        drawLabel('Read Me', self.width // 4,
-                 self.height - self.height // 8,
-                 size=self.width // 17,
-                 fill=self.readMeTextColor)
+    # def drawReadMeScreen(self, app):
+    #     drawRect(0, app.height // 2 + app.height // 4,
+    #             app.width // 2, app.height // 4,
+    #             fill=self.readMeColor, border='white')
+    #     drawLabel('Read Me', app.width // 4,
+    #              app.height - app.height // 8,
+    #              size=app.width // 17,
+    #              fill=self.readMeTextColor)
 
     def drawKeyboardMapperHoverOverColor(self, mouseX, mouseY):
-        if self.height // 2 + self.height // 4 <= mouseY <= self.height:
-            if self.width // 2 <= mouseX <= self.width:
+        if app.height // 2 + app.height // 4 <= mouseY <= app.height:
+            if app.width // 2 <= mouseX <= app.width:
                 self.keyboardMapperColor = 'white'
                 self.keyboardMapperTextColor = 'black'
             else:
