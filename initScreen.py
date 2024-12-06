@@ -1,3 +1,6 @@
+#citation: used LLM to help me improve the UI of the Init Screen, mostly by making the hexagons for the modes and their hover over effects
+#citation continuation: nevertheless, still had to correct / change much of the logic for that part of the code to also work
+
 from math import cos, sin, radians
 from screen import *
 
@@ -18,9 +21,8 @@ class InitScreen(Screen):
         self.drawPixelArtTitle(app)
         self.drawModes(app)
         self.drawSelectFile(app)
-        # self.drawReadMeScreen(app)
-        # self.drawKeyboardMapper(app)
     
+    #draws the pixel art title of the game by using a state 2d list to draw each pixel individually where 1 is white, 0 is black
     def drawPixelArtTitle(self, app):
         pixelSize = app.width // 80
         x = app.width // 4
@@ -50,10 +52,11 @@ class InitScreen(Screen):
                                fill='white')
             x += pixelSize * 5
 
+    #draws the two modes of the game, the game and the CPU simulator, each being a hexagon
     def drawModes(self, app):
         startY = app.height // 2.5
         modeWidth = app.width // 4
-        spacing = modeWidth // 2 + modeWidth // 3
+        spacing = modeWidth // 2 + modeWidth // 2.5
         radius = modeWidth // 2
         centerX = app.width // 4
         
@@ -82,6 +85,7 @@ class InitScreen(Screen):
         drawLabel('CPU simulator', centerX, centerY2,
                  fill=self.cpuTextColor, size=app.width//45, bold=True)
 
+    #draws the select file button which is a folder icon
     def drawSelectFile(self, app):
         startY = app.height // 3 + app.height // 8
         folderX = app.width * 3 // 4 - app.width // 12
@@ -104,10 +108,11 @@ class InitScreen(Screen):
                  startY + folderHeight//1.5, size=app.width//50,
                  fill=self.fileTextColor)
 
+    # handles calculations to determine if the mouse is hovering over a mode
     def drawModesHoverOvers(self, mouseX, mouseY):
-        startY = app.height // 3
+        startY = app.height // 2.5
         modeWidth = app.width // 4
-        spacing = modeWidth // 2 + modeWidth // 3
+        spacing = modeWidth // 2 + modeWidth // 2.5
         radius = modeWidth // 2
         centerX = app.width // 4
         
@@ -123,6 +128,7 @@ class InitScreen(Screen):
         
         self.notHoveringOver()
     
+    # handles calculations to determine if the mouse is hovering over the select file button
     def drawFileHoverOverColor(self, mouseX, mouseY):
         startY = app.height // 3 + app.height // 8
         folderX = app.width * 3 // 4 - app.width // 12
@@ -137,6 +143,7 @@ class InitScreen(Screen):
         else:
             self.notHoveringOverFile()
 
+    # the next five functions change the color of the text and the button when the mouse is hovering over
     def drawFileHoverOver(self):
         self.selectFileColor = 'white'
         self.fileTextColor = 'black'
@@ -144,67 +151,6 @@ class InitScreen(Screen):
     def notHoveringOverFile(self):
         self.selectFileColor = 'black'
         self.fileTextColor = 'white'
-
-    def drawFileHoverOver(self):
-        self.selectFileColor = 'white'
-        self.fileTextColor = 'black'
-
-    def notHoveringOverFile(self):
-        self.selectFileColor = 'black'
-        self.fileTextColor = 'white'
-
-
-    def handleModeClicks(self, app, mouseX, mouseY):
-        startY = app.height // 3
-        modeWidth = app.width // 4
-        spacing = modeWidth // 2 + modeWidth // 3
-        radius = modeWidth // 2
-        centerX = app.width // 4
-        
-        centerY1 = startY
-        if ((mouseX - centerX)**2 + (mouseY - centerY1)**2 <= radius**2):
-            app.mode = 'game'
-            app.modeSelected = True
-            return
-        
-        centerY2 = startY + spacing
-        if ((mouseX - centerX)**2 + (mouseY - centerY2)**2 <= radius**2):
-            app.mode = 'CPU'
-            app.modeSelected = True
-            return
-
-    # def drawKeyboardMapper(self, app):
-    #     drawRect(app.width // 2,
-    #             app.height // 2 + app.height // 4,
-    #             app.width // 2, app.height // 4,
-    #             fill=self.keyboardMapperColor,
-    #             border='white')
-    #     drawLabel('Keyboard Mapper',
-    #              app.width // 2 + app.width // 4,
-    #              app.height - app.height // 8,
-    #              size=app.width // 17,
-    #              fill=self.keyboardMapperTextColor)
-
-    # def drawReadMeScreen(self, app):
-    #     drawRect(0, app.height // 2 + app.height // 4,
-    #             app.width // 2, app.height // 4,
-    #             fill=self.readMeColor, border='white')
-    #     drawLabel('Read Me', app.width // 4,
-    #              app.height - app.height // 8,
-    #              size=app.width // 17,
-    #              fill=self.readMeTextColor)
-
-    def drawKeyboardMapperHoverOverColor(self, mouseX, mouseY):
-        if app.height // 2 + app.height // 4 <= mouseY <= app.height:
-            if app.width // 2 <= mouseX <= app.width:
-                self.keyboardMapperColor = 'white'
-                self.keyboardMapperTextColor = 'black'
-            else:
-                self.keyboardMapperColor = 'black'
-                self.keyboardMapperTextColor = 'white'
-        else:
-            self.keyboardMapperColor = 'black'
-            self.keyboardMapperTextColor = 'white'
 
     def hoverOverGame(self):
         self.gameColor = 'white'
@@ -223,3 +169,23 @@ class InitScreen(Screen):
         self.gameTextColor = 'white'
         self.cpuColor = 'black'
         self.cpuTextColor = 'white'
+
+    # handles the logic for when the user clicks on a mode
+    def handleModeClicks(self, app, mouseX, mouseY):
+        startY = app.height // 2.5
+        modeWidth = app.width // 4
+        spacing = modeWidth // 2 + modeWidth // 2.5
+        radius = modeWidth // 2
+        centerX = app.width // 4
+        
+        centerY1 = startY
+        if ((mouseX - centerX)**2 + (mouseY - centerY1)**2 <= radius**2):
+            app.mode = 'game'
+            app.modeSelected = True
+            return
+        
+        centerY2 = startY + spacing
+        if ((mouseX - centerX)**2 + (mouseY - centerY2)**2 <= radius**2):
+            app.mode = 'CPU'
+            app.modeSelected = True
+            return
