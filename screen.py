@@ -1,6 +1,7 @@
 from cmu_graphics import *
 
 class Screen:
+    #sets up all the variables that are shared between the different screens
     def __init__(self, app):
         self.rx = 0
         self.ry = 0

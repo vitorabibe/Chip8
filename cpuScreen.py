@@ -12,6 +12,7 @@ class CpuScreen(Screen):
         CpuScreen.drawRegisters(self, app)
         GameScreen.render(self, app)
 
+    # draws the program counter
     def drawPC(self, app):
         pcX = 0
         pcY = 0
@@ -24,6 +25,7 @@ class CpuScreen(Screen):
             color = 'white'
         drawLabel(f'PC: {app.cpu.pc}', pcX + (pcLen) // 2, pcY + (pcHeight // 2), size = pcLen // 5, fill=color)
 
+    # draws the opcode
     def drawOpcode(self, opcode):
         opcodeX = app.width // 6
         opcodeY = 0
@@ -33,6 +35,7 @@ class CpuScreen(Screen):
         drawRect(opcodeX, opcodeY, opcodeLen, opcodeHeight, fill=None, border='white')
         drawLabel(f'Opcode: {opcode}', opcodeX + (opcodeLen) // 2, opcodeY + (opcodeHeight // 2), size = opcodeLen // 20, fill='white')
 
+    # draws the instruction label and square
     def drawInstruction(self, app):
         instructionX = 0
         instructionY = app.height // 20
@@ -41,6 +44,7 @@ class CpuScreen(Screen):
         drawRect(instructionX, instructionY, instructionLen, instructionHeight, fill=None, border='white')
         drawLabel(f'Instruction: {app.cpu.instruction}, {app.cpu.command}', instructionX + (instructionLen) // 2, instructionY + (instructionHeight // 2), size = instructionLen // 30, fill='white')
 
+    # draws the I register
     def drawI(self, app):
         x = 0
         y = app.height // 10
@@ -53,6 +57,7 @@ class CpuScreen(Screen):
             color = 'white'
         drawLabel(f'I: {app.cpu.I}', x + (len) // 2, y + (height // 2), size = len // 5, fill=color)
 
+    # draws the registers, including the flag
     def drawRegisters(self, app):
         xInit = 0
         yInit = 3 * (app.height // 20)

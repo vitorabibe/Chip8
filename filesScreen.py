@@ -1,4 +1,5 @@
-#citation: used the help from LLM for the vast majority of this code, with just some minor adjustments made by me
+#citation: used the help from LLM for the vast majority of this code, with the growthFactor logic being implemented by me
+#(previously the files just had a set width and height)
 
 from screen import *
 

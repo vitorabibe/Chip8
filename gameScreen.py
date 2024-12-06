@@ -1,6 +1,7 @@
 from screen import *
 
 class GameScreen(Screen):
+    # renders the game screen only if the pixel is a 1 to maximize efficiency.
     def render(self, app):
         if app.mode == 'game':
             xInit = 0
